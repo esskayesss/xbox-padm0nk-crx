@@ -25,19 +25,16 @@ describe('mapper.step — left stick', () => {
 		expect(s.axes[1]).toBe(0);
 	});
 
-	it('diagonal W+D is radially clamped: magnitude <= 1 and ~0.707 per axis', () => {
+	it('diagonal W+D clamps each axis independently to full deflection (legacy feel)', () => {
 		const s = createGamepadState();
 		s.held.add('KeyW'); // LY -1
 		s.held.add('KeyD'); // LX +1
 		step(cfg(), s, 1);
-		const ax0 = s.axes[0];
-		const ax1 = s.axes[1];
-		const magnitude = Math.hypot(ax0, ax1);
-		// headline fix: vector magnitude must not exceed 1 (legacy reached √2)
-		expect(magnitude).toBeLessThanOrEqual(1 + 1e-9);
-		expect(magnitude).toBeCloseTo(1, 6);
-		expect(Math.abs(ax0)).toBeCloseTo(Math.SQRT1_2, 6); // ~0.707
-		expect(Math.abs(ax1)).toBeCloseTo(Math.SQRT1_2, 6);
+		// legacy parity: each axis reaches its full ±1 (diagonal magnitude ~1.41),
+		// NOT radially clamped to ~0.707 — restores the original movement feel.
+		expect(s.axes[0]).toBeCloseTo(1, 6); // LX +1
+		expect(s.axes[1]).toBeCloseTo(-1, 6); // LY -1
+		expect(Math.hypot(s.axes[0], s.axes[1])).toBeCloseTo(Math.SQRT2, 6);
 	});
 
 	it('button binding sets the mapped button to 1', () => {
@@ -92,13 +89,31 @@ describe('mapper.step — right stick (mouse)', () => {
 		expect(s.axes[3]).toBe(0);
 	});
 
-	it('consumes (zeroes) mouse delta each tick', () => {
+	it('consumes mouse delta within full deflection (no leftover for normal aim)', () => {
 		const s = createGamepadState();
+		// 50px * 0.018 sens = 0.9 deflection (< 1) → fully consumed, nothing carried
 		s.mouseDX = 50;
 		s.mouseDY = -50;
 		step(cfg(), s, 1);
 		expect(s.mouseDX).toBe(0);
 		expect(s.mouseDY).toBe(0);
+	});
+
+	it('carries over delta beyond full deflection so fast flicks are not clipped', () => {
+		const s = createGamepadState();
+		const c = cfg({ smoothing: 0 });
+		// a fast flick: 200px * 0.018 = 3.6 deflection → stick pins at max (1) and the
+		// overflow stays queued so the next frames keep delivering the motion.
+		s.mouseDX = 200;
+		step(c, s, 1);
+		expect(s.axes[2]).toBeCloseTo(1, 6); // pinned at full deflection
+		expect(s.mouseDX).toBeGreaterThan(0); // overflow carried, not discarded
+		// overflow = (3.6 - 1) / 0.018 px
+		expect(s.mouseDX).toBeCloseTo((3.6 - 1) / 0.018, 4);
+
+		// draining with no new input keeps the stick pinned until consumed
+		step(c, s, 2);
+		expect(s.axes[2]).toBeCloseTo(1, 6);
 	});
 
 	it('sets timestamp to now', () => {

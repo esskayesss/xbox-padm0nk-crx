@@ -50,31 +50,34 @@ export function step(config: Config, state: GamepadState, now: number): void {
 		}
 	}
 
-	// Bug 1 — radial clamp (intentional divergence from legacy).
-	// Legacy clamped each axis independently (clamp(ax0,-1,1); clamp(ax1,-1,1)),
-	// so a diagonal like W+D produced the vector (1,1) with magnitude √2 ≈ 1.41 —
-	// i.e. diagonal movement was ~41% faster than cardinal. We instead clamp the
-	// (ax0,ax1) VECTOR to magnitude ≤ 1, scaling both components by 1/mag while
-	// preserving direction. Cardinal inputs (mag ≤ 1) are unchanged; diagonals now
-	// move at correct unit-circle speed (~0.707 each).
-	const mag = Math.hypot(acc0, acc1);
-	if (mag > 1) {
-		acc0 /= mag;
-		acc1 /= mag;
-	}
-	axes[AXIS.LX] = acc0;
-	axes[AXIS.LY] = acc1;
+	// Left stick: clamp each axis independently (legacy feel). An earlier build
+	// radial-clamped the (x,y) vector to magnitude 1 so diagonals moved at unit
+	// speed (~0.707 each) instead of legacy's ~1.41 — but that changed the feel
+	// the project shipped with, so we keep legacy's per-axis clamp.
+	axes[AXIS.LX] = clamp(acc0, -1, 1);
+	axes[AXIS.LY] = clamp(acc1, -1, 1);
 
-	// Right stick from mouse delta. aimResponse lifts tiny deltas above in-game
-	// stick deadzones so slow mouse movement still moves the crosshair.
-	const rxTarget = aimResponse(state.mouseDX * config.sensitivity, config.aimMin, config.aimCurve);
-	const ryTarget = aimResponse(
-		state.mouseDY * config.sensitivity * (config.invertY ? -1 : 1),
-		config.aimMin,
-		config.aimCurve,
-	);
-	state.mouseDX = 0;
-	state.mouseDY = 0;
+	// Right stick from mouse delta, WITH CARRY-OVER.
+	//
+	// The bug: mapping instantaneous mouse delta to stick POSITION caps at full
+	// deflection (1.0). A fast flick produces `mouseDX * sensitivity` well above 1,
+	// which clamps to 1 — and because we then zeroed the delta, every pixel beyond
+	// what fit under full deflection was THROWN AWAY. Result: fast flicks "speed up
+	// then plateau" and under-rotate, losing the tail of the motion.
+	//
+	// Fix: only consume the portion of the delta that fits under full deflection;
+	// carry the remainder into the next frame. The stick stays pinned at max across
+	// frames until the whole flick is delivered — full rotation, just rate-limited
+	// by the stick ceiling (which the game enforces regardless). Within [-1,1] the
+	// delta is consumed completely (excess 0), so slow/normal aim is unchanged.
+	const sens = config.sensitivity;
+	const rawX = state.mouseDX * sens;
+	const rawY = state.mouseDY * sens;
+	const rxTarget = aimResponse(rawX, config.aimMin, config.aimCurve);
+	const ryTarget = aimResponse(rawY * (config.invertY ? -1 : 1), config.aimMin, config.aimCurve);
+	// carry the overflow beyond full deflection (in mouse-pixel units) to next frame
+	state.mouseDX = sens !== 0 ? (rawX - clamp(rawX, -1, 1)) / sens : 0;
+	state.mouseDY = sens !== 0 ? (rawY - clamp(rawY, -1, 1)) / sens : 0;
 
 	const s = clamp(config.smoothing, 0, 0.95);
 	let nx = axes[AXIS.RX] * s + rxTarget * (1 - s);
