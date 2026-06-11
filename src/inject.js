@@ -166,10 +166,10 @@
 	}
 
 	// ---- Build a spec-shaped Gamepad snapshot on demand ----
-	function snapshot() {
+	function snapshot(index = 0) {
 		return {
 			id: "PadKey Virtual Xbox 360 Controller (STANDARD GAMEPAD Vendor: 045e Product: 028e)",
-			index: 0,
+			index,
 			connected: state.connected,
 			mapping: "standard",
 			timestamp: state.timestamp,
@@ -197,9 +197,12 @@
 			// pass through real controllers untouched
 			return real;
 		}
-		// place our virtual pad at index 0, keep any real pads after it
+		// place our virtual pad in the first empty slot so a real controller at
+		// index 0 is not clobbered; report that slot as the pad's index.
 		const out = real.slice();
-		out[0] = snapshot();
+		let slot = out.findIndex((g) => g == null);
+		if (slot === -1) slot = out.length;
+		out[slot] = snapshot(slot);
 		return out;
 	}
 
@@ -385,6 +388,23 @@
 	);
 	document.addEventListener("pointerlockchange", onPointerLockChange, true);
 
+	// Clear held inputs + mouse delta when focus/visibility is lost, so keys/sticks
+	// don't get stuck (e.g. Alt-Tab while holding W or a mouse button — the keyup
+	// fires outside the page and never reaches us).
+	function clearInputs() {
+		held.clear();
+		mouseDX = 0;
+		mouseDY = 0;
+	}
+	window.addEventListener("blur", clearInputs, true);
+	document.addEventListener(
+		"visibilitychange",
+		() => {
+			if (document.visibilityState === "hidden") clearInputs();
+		},
+		true,
+	);
+
 	// ---- Mapping tick: resolve held inputs + mouse delta into pad state ----
 	function tick() {
 		if (config.enabled) {
@@ -426,7 +446,7 @@
 
 	// ---- HUD + help overlay ----
 	let hudEl = null;
-	const helpEl = null;
+	let helpEl = null;
 	function hud() {
 		if (!document.body) return;
 		if (!hudEl) {
@@ -539,9 +559,12 @@
 	function toggle() {
 		config.enabled = !config.enabled;
 		if (config.enabled) {
-			// reconnect on next input
+			// clear any stale deflection so re-enable doesn't emit one stale frame
+			state.buttons.fill(0);
+			state.axes = new Float64Array(AXIS_COUNT);
+			clearInputs();
 		} else {
-			held.clear();
+			clearInputs();
 			fireDisconnect();
 			if (document.pointerLockElement) document.exitPointerLock();
 		}
