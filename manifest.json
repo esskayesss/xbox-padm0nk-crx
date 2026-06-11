@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "PadKey — Keyboard & Mouse for xCloud",
+  "version": "0.1.0",
+  "description": "Play Xbox Cloud Gaming with mouse + keyboard by emulating an Xbox controller via the Gamepad API. Free, no drivers.",
+  "permissions": ["storage"],
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "action": {
+    "default_title": "PadKey",
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.xbox.com/*/play*",
+        "https://www.xbox.com/play*",
+        "https://xbox.com/play*",
+        "https://www.gamepad-tester.com/*",
+        "https://gamepad-tester.com/*",
+        "https://hardwaretester.com/gamepad*"
+      ],
+      "js": ["src/bridge.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://www.xbox.com/*/play*",
+        "https://www.xbox.com/play*",
+        "https://xbox.com/play*",
+        "https://www.gamepad-tester.com/*",
+        "https://gamepad-tester.com/*",
+        "https://hardwaretester.com/gamepad*"
+      ],
+      "js": ["src/inject.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    }
+  ]
+}

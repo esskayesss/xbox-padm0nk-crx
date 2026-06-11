@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font:
+          13px/1.5 ui-sans-serif,
+          system-ui,
+          sans-serif;
+        width: 280px;
+        margin: 0;
+        padding: 14px;
+        background: #14141a;
+        color: #e6e6e6;
+      }
+      h1 {
+        font-size: 14px;
+        margin: 0 0 10px;
+        color: #9fef7f;
+      }
+      label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 8px 0;
+        gap: 10px;
+      }
+      input[type="range"] {
+        flex: 1;
+      }
+      .val {
+        width: 42px;
+        text-align: right;
+        color: #9fef7f;
+        font-variant-numeric: tabular-nums;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 8px 0;
+      }
+      small {
+        color: #8a8a93;
+        display: block;
+        margin-top: 10px;
+      }
+      button {
+        width: 100%;
+        margin-top: 10px;
+        padding: 7px;
+        background: #23232d;
+        color: #e6e6e6;
+        border: 1px solid #34343f;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #2c2c38;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎮 PadKey</h1>
+    <label><span>Enabled</span><input type="checkbox" id="enabled" /></label>
+    <label
+      ><span>Mouse sensitivity</span
+      ><input
+        type="range"
+        id="sensitivity"
+        min="0.002"
+        max="0.05"
+        step="0.001" /><span class="val" id="sensitivityVal"></span
+    ></label>
+    <label
+      ><span>Smoothing</span
+      ><input type="range" id="smoothing" min="0" max="0.9" step="0.05" /><span
+        class="val"
+        id="smoothingVal"
+      ></span
+    ></label>
+    <label
+      ><span>Aim min</span
+      ><input type="range" id="aimMin" min="0" max="0.35" step="0.01" /><span
+        class="val"
+        id="aimMinVal"
+      ></span
+    ></label>
+    <label
+      ><span>Aim curve</span
+      ><input
+        type="range"
+        id="aimCurve"
+        min="0.35"
+        max="1.5"
+        step="0.05" /><span class="val" id="aimCurveVal"></span
+    ></label>
+    <label><span>Invert Y</span><input type="checkbox" id="invertY" /></label>
+    <label
+      ><span>Lock pointer on click</span
+      ><input type="checkbox" id="lockPointerOnClick"
+    /></label>
+    <button id="advanced">⚙️ Advanced remapping…</button>
+    <button id="reset">Reset sliders to defaults</button>
+    <small
+      >Toggle in-game with <b>F8</b>. Click the game to lock the mouse for aim;
+      <b>Esc</b> releases it. Test mappings at gamepad-tester.com.</small
+    >
+    <script src="popup.js"></script>
+  </body>
+</html>

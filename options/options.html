@@ -1,0 +1,258 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>PadKey — Configuration</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font:
+          14px/1.5 ui-sans-serif,
+          system-ui,
+          sans-serif;
+        margin: 0;
+        background: #0f0f14;
+        color: #e6e6e6;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 28px 22px 60px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+        color: #9fef7f;
+      }
+      h2 {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #8a8a93;
+        margin: 28px 0 10px;
+        border-bottom: 1px solid #23232d;
+        padding-bottom: 6px;
+      }
+      .sub {
+        color: #8a8a93;
+        margin: 0 0 8px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 8px 14px;
+        align-items: center;
+      }
+      .label {
+        color: #cfcfd6;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #23232d;
+        border: 1px solid #34343f;
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: 13px;
+      }
+      .chip b {
+        color: #9fef7f;
+        font-weight: 600;
+      }
+      .chip .x {
+        cursor: pointer;
+        color: #ff7b7b;
+        font-weight: 700;
+      }
+      .add {
+        cursor: pointer;
+        background: #1b2a17;
+        border: 1px dashed #3c6b2e;
+        color: #9fef7f;
+        border-radius: 6px;
+        padding: 3px 9px;
+        font-size: 13px;
+      }
+      .add.capturing {
+        background: #3a2a12;
+        border-color: #b07a2a;
+        color: #ffcf8a;
+        animation: pulse 1s infinite;
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.55;
+        }
+      }
+      .info {
+        color: #8a8a93;
+        font-style: italic;
+      }
+      .settings label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 10px 0;
+        max-width: 420px;
+      }
+      input[type="range"] {
+        flex: 1;
+      }
+      .val {
+        width: 48px;
+        text-align: right;
+        color: #9fef7f;
+        font-variant-numeric: tabular-nums;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
+      button {
+        padding: 8px 14px;
+        background: #23232d;
+        color: #e6e6e6;
+        border: 1px solid #34343f;
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      button:hover {
+        background: #2c2c38;
+      }
+      button.danger {
+        border-color: #5c2b2b;
+        color: #ff9b9b;
+      }
+      textarea {
+        width: 100%;
+        height: 150px;
+        background: #16161d;
+        color: #cfcfd6;
+        border: 1px solid #34343f;
+        border-radius: 7px;
+        padding: 10px;
+        font:
+          12px/1.5 ui-monospace,
+          monospace;
+        margin-top: 8px;
+      }
+      .saved {
+        color: #9fef7f;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .saved.show {
+        opacity: 1;
+      }
+      details {
+        margin-top: 14px;
+      }
+      summary {
+        cursor: pointer;
+        color: #8a8a93;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>
+        🎮 PadKey Configuration <span class="saved" id="saved">saved ✓</span>
+      </h1>
+      <p class="sub">
+        Remap every control. Click <b>＋ Add</b> on a row, then press the key /
+        mouse button you want to bind. Click a chip's <b>×</b> to unbind.
+        Changes apply live — just reload the xCloud tab.
+      </p>
+
+      <div id="targets"></div>
+
+      <h2>Mouse &amp; behaviour</h2>
+      <div class="settings">
+        <label
+          ><span>Mouse sensitivity (→ right stick)</span
+          ><input
+            type="range"
+            id="sensitivity"
+            min="0.002"
+            max="0.05"
+            step="0.001" /><span class="val" id="sensitivityVal"></span
+        ></label>
+        <label
+          ><span>Smoothing (0 sharp → 0.9 floaty)</span
+          ><input
+            type="range"
+            id="smoothing"
+            min="0"
+            max="0.9"
+            step="0.05" /><span class="val" id="smoothingVal"></span
+        ></label>
+        <label
+          ><span>Aim minimum (deadzone compensation)</span
+          ><input
+            type="range"
+            id="aimMin"
+            min="0"
+            max="0.35"
+            step="0.01" /><span class="val" id="aimMinVal"></span
+        ></label>
+        <label
+          ><span>Aim curve (&lt;1 boosts fine aim)</span
+          ><input
+            type="range"
+            id="aimCurve"
+            min="0.35"
+            max="1.5"
+            step="0.05" /><span class="val" id="aimCurveVal"></span
+        ></label>
+        <label
+          ><span>Invert Y axis</span><input type="checkbox" id="invertY"
+        /></label>
+        <label
+          ><span>Lock pointer on click (aim)</span
+          ><input type="checkbox" id="lockPointerOnClick"
+        /></label>
+        <label
+          ><span>Toggle on/off key combo</span
+          ><button id="toggleKeyBtn" class="add"></button
+        ></label>
+        <label
+          ><span>Show keybinds combo</span
+          ><button id="helpKeyBtn" class="add"></button
+        ></label>
+      </div>
+
+      <details>
+        <summary>Import / Export profile (JSON)</summary>
+        <textarea id="json" spellcheck="false"></textarea>
+        <div class="row">
+          <button id="export">Copy current → box</button>
+          <button id="import">Apply from box</button>
+        </div>
+      </details>
+
+      <div class="row">
+        <button id="resetAll" class="danger">
+          Reset everything to defaults
+        </button>
+      </div>
+    </div>
+    <script src="options.js"></script>
+  </body>
+</html>
