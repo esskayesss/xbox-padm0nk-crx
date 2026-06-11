@@ -169,32 +169,63 @@ function main(): void {
 		}
 		refreshUi();
 	}
-	function onHelpCombo(): void {
-		overlayOpen = !overlayOpen;
-		// Bug 3: opening the modal must release pointer lock. While locked, mouse
-		// events retarget to documentElement so composedPath no longer includes our
-		// shadow host — the close button becomes unreachable and the cursor stays
-		// hidden. Exit lock on OPEN so the modal is immediately clickable.
-		if (overlayOpen && document.pointerLockElement) {
+	// Scroll-lock the page while the overlay is open (Bug: page scrolled behind
+	// the modal). Saves + restores the prior inline overflow on <html> and <body>.
+	let scrollLocked = false;
+	let prevHtmlOverflow = '';
+	let prevBodyOverflow = '';
+	function lockScroll(on: boolean): void {
+		if (on === scrollLocked) return;
+		scrollLocked = on;
+		const html = document.documentElement;
+		const body = document.body;
+		if (on) {
+			prevHtmlOverflow = html.style.overflow;
+			prevBodyOverflow = body?.style.overflow ?? '';
+			html.style.overflow = 'hidden';
+			if (body) body.style.overflow = 'hidden';
+		} else {
+			html.style.overflow = prevHtmlOverflow;
+			if (body) body.style.overflow = prevBodyOverflow;
+		}
+	}
+
+	// Single source of truth for overlay open/close. Opening frees the cursor
+	// (exit pointer lock so the modal is clickable — locked-pointer mouse events
+	// retarget to <html>, which would make the close button unreachable) and
+	// locks page scroll; closing restores both.
+	function setOverlay(open: boolean): void {
+		if (overlayOpen === open) return;
+		overlayOpen = open;
+		if (open) {
 			try {
 				document.exitPointerLock?.();
 			} catch {
 				/* ignore */
 			}
+			lockScroll(true);
+		} else {
+			lockScroll(false);
 		}
 		refreshUi();
 	}
+	function onHelpCombo(): void {
+		setOverlay(!overlayOpen);
+	}
 	function closeOverlay(): void {
-		if (!overlayOpen) return;
-		overlayOpen = false;
-		refreshUi();
+		setOverlay(false);
 	}
 
 	// 7. Config bridge (isolated world → MAIN). Asset URLs arrive ONLY here.
+	//    HANDSHAKE: the bridge may post before this listener exists (CRXJS loads
+	//    us via async dynamic import). So we PING the bridge with `hello` and keep
+	//    retrying until the first config arrives; the bridge replies on demand.
+	let gotConfig = false;
 	window.addEventListener('message', (e) => {
 		if (e.source !== window) return;
 		const d = e.data as { __padm0nk?: string; config?: unknown } & Record<string, unknown>;
 		if (!d || d.__padm0nk !== 'config') return;
+		gotConfig = true;
 		if (typeof d.iconUrl === 'string' && d.iconUrl) iconUrl = d.iconUrl;
 		if (typeof d.bindIconBase === 'string' && d.bindIconBase) bindIconBase = d.bindIconBase;
 		if (typeof d.controllerUrl === 'string' && d.controllerUrl) controllerUrl = d.controllerUrl;
@@ -202,6 +233,12 @@ function main(): void {
 		config = normalizeConfig(d.config);
 		refreshUi();
 	});
+	function requestConfig(): void {
+		if (gotConfig) return;
+		window.postMessage({ __padm0nk: 'hello' }, '*');
+	}
+	requestConfig();
+	for (const t of [50, 150, 400, 900]) setTimeout(requestConfig, t);
 
 	// 8. Wire DOM capture via a small typed controller seam.
 	const ctrl: CaptureController = {

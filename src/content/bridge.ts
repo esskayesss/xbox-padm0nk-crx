@@ -35,8 +35,13 @@ function getURL(path: string): string {
 	}
 }
 
+// Last config we posted — replayed when MAIN sends a `hello` (handshake below).
+let lastConfig: Config | Record<string, never> = {};
+let loggedUrls = false;
+
 /** Post config + freshly-resolved asset URLs to the MAIN world. */
 function post(config: Config | Record<string, never>): void {
+	lastConfig = config;
 	const payload: BridgePayload = {
 		__padm0nk: 'config',
 		config,
@@ -46,12 +51,36 @@ function post(config: Config | Record<string, never>): void {
 		// NEW (Bug 6): bundled font, no longer hotlinked from the xbox CDN.
 		fontUrl: getURL('assets/fonts/bahnschrift.woff'),
 	};
+	// One-time diagnostic so a human can confirm the extension asset URLs resolve
+	// (empty here would mean chrome.runtime.getURL failed / WAR misconfigured).
+	if (!loggedUrls) {
+		loggedUrls = true;
+		console.log('[padm0nk] bridge asset URLs', {
+			icon: payload.iconUrl,
+			controller: payload.controllerUrl,
+			bindIconBase: payload.bindIconBase,
+		});
+	}
 	window.postMessage(payload, '*');
 }
 
+// HANDSHAKE (fixes the dynamic-import race): the MAIN-world inject coordinator
+// registers its `message` listener asynchronously (CRXJS loads it via dynamic
+// import), so a single proactive post can land before MAIN is listening — and
+// every asset URL silently goes missing. So we BOTH (a) post proactively, and
+// (b) reply to MAIN's `hello` pings with the latest payload. Asset URLs do not
+// depend on storage, so we post them immediately too (before readConfig).
+post({});
+
+window.addEventListener('message', (e) => {
+	if (e.source !== window) return;
+	const d = e.data as { __padm0nk?: string } | null;
+	if (d && d.__padm0nk === 'hello') post(lastConfig);
+});
+
 // Initial load. readConfig handles local-first → sync-fallback (+ migrate) and
-// always returns a normalized Config. On any failure post an empty config so
-// MAIN still receives the asset URLs and can render with safe defaults.
+// always returns a normalized Config. On any failure keep the empty config so
+// MAIN still has the asset URLs and renders with safe defaults.
 readConfig()
 	.then((config) => post(config))
 	.catch(() => post({}));

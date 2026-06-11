@@ -669,3 +669,19 @@ run build/tests, update todos + this file's "Progress log".
   is empty. Brand orb also restored in the overlay header. No code bug found.
 - **Gates**: typecheck 0 errors/0 warnings · test 64 passed (9 files) ·
   build ✓ in 1.60s · format:check clean. core/storage/mapper/tests untouched.
+
+## Progress log — P6-fix2 (assets + modal UX)
+- Root-caused missing assets: CRXJS loads both content scripts via async
+  dynamic import, so the bridge's one-shot config postMessage raced the MAIN
+  inject listener and was dropped → all asset URLs empty (P/·/blank fallbacks).
+  Fix: bidirectional handshake — inject pings `hello` on load + retries
+  (0/50/150/400/900ms) until first config; bridge replies on demand AND posts
+  immediately (URLs don't depend on storage). Added one-time bridge console
+  log of resolved asset URLs for human verification.
+- Fixed × dismiss: panel used capture-phase stopPropagation, halting the click
+  before it reached the close button. Now backdrop closes only when its own
+  element is the target; panel keeps capture-phase mousedown/pointerdown swallow
+  for click-safety; × button onclick works.
+- Fixed page scroll behind modal: coordinator locks <html>/<body> overflow
+  while overlay open (saves/restores prior inline value) + backdrop wheel guard.
+- Gates: typecheck 0/0, 64 tests, build ✓.

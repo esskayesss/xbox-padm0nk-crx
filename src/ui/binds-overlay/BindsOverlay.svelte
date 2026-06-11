@@ -104,7 +104,13 @@
 		onpointerdowncapture={stop}
 		onmousedowncapture={stop}
 		onmouseupcapture={stop}
-		onclick={onClose}
+		onwheel={(e) => {
+			e.preventDefault();
+			e.stopPropagation();
+		}}
+		onclick={(e) => {
+			if (e.target === e.currentTarget) onClose();
+		}}
 		onkeydown={(e) => e.key === 'Escape' && onClose()}
 		role="presentation"
 	>
@@ -112,7 +118,6 @@
 		<div
 			class="text-pad-text max-h-[calc(100vh-32px)] w-[min(1040px,calc(100vw-32px))] overflow-auto rounded-3xl border p-[22px]"
 			style="border-color:color-mix(in srgb, var(--color-pad-accent) 38%, transparent);background:linear-gradient(145deg, color-mix(in srgb, var(--color-pad-bg-2) 96%, transparent), color-mix(in srgb, var(--color-pad-bg) 96%, transparent));box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 42px color-mix(in srgb, var(--color-pad-green) 18%, transparent);"
-			onclickcapture={stop}
 			onpointerdowncapture={stop}
 			onmousedowncapture={stop}
 			onmouseupcapture={stop}
