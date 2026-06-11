@@ -93,4 +93,25 @@ with `chrome.storage.sync` kept as a debounced backup.
 
 - Only runs on the allow-listed sites (xCloud + gamepad testers) by design.
 - Mouse aim uses pointer lock; some games still need their in-game sensitivity raised.
-- Chromium only (see Safari note above).
+- **Desktop Chromium only.** Pointer Lock is required for aim, so Safari/WebKit and
+  Chromium on Android cannot work. Use Chrome or Edge on Windows/macOS/Linux.
+- xCloud occasionally changes its input handling; an update can temporarily break
+  injection until the extension is updated.
+- If xCloud is set to its built-in **Native Mouse & Keyboard** mode, it bypasses the
+  gamepad layer — keep the controller input mode selected for PadKey to work.
+
+## Packaging & publishing
+
+```sh
+./scripts/pack.sh   # writes dist/padkey-<version>.zip (runtime files only)
+```
+
+Upload the zip to the Chrome Web Store / Edge Add-ons. The privacy policy lives in
+`docs/privacy.html` and is meant to be served via GitHub Pages (Settings → Pages →
+source: `/docs`), giving a public URL to paste into the store dashboard.
+
+## Disclaimer
+
+PadKey is an independent tool. It is **not affiliated with, endorsed by, or sponsored
+by Microsoft**. Xbox is a trademark of Microsoft Corporation. No data is collected or
+transmitted — see [`docs/privacy.html`](docs/privacy.html).
