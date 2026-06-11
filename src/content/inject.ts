@@ -50,6 +50,7 @@ function main(): void {
 	let config: Config = normalizeConfig(undefined);
 	let iconUrl = '';
 	let bindIconBase = '';
+	let controllerUrl = '';
 	let fontUrl = '';
 	let overlayOpen = false;
 
@@ -100,6 +101,9 @@ function main(): void {
 		open: overlayOpen,
 		bindings: config.bindings,
 		bindIconBase,
+		controllerUrl,
+		iconUrl,
+		enabled: config.enabled,
 		toggleCombo: config.toggleCombo,
 		helpCombo: config.helpCombo,
 		onClose: closeOverlay,
@@ -167,6 +171,17 @@ function main(): void {
 	}
 	function onHelpCombo(): void {
 		overlayOpen = !overlayOpen;
+		// Bug 3: opening the modal must release pointer lock. While locked, mouse
+		// events retarget to documentElement so composedPath no longer includes our
+		// shadow host — the close button becomes unreachable and the cursor stays
+		// hidden. Exit lock on OPEN so the modal is immediately clickable.
+		if (overlayOpen && document.pointerLockElement) {
+			try {
+				document.exitPointerLock?.();
+			} catch {
+				/* ignore */
+			}
+		}
 		refreshUi();
 	}
 	function closeOverlay(): void {
@@ -182,6 +197,7 @@ function main(): void {
 		if (!d || d.__padm0nk !== 'config') return;
 		if (typeof d.iconUrl === 'string' && d.iconUrl) iconUrl = d.iconUrl;
 		if (typeof d.bindIconBase === 'string' && d.bindIconBase) bindIconBase = d.bindIconBase;
+		if (typeof d.controllerUrl === 'string' && d.controllerUrl) controllerUrl = d.controllerUrl;
 		if (typeof d.fontUrl === 'string' && d.fontUrl) fontUrl = d.fontUrl;
 		config = normalizeConfig(d.config);
 		refreshUi();
@@ -198,6 +214,9 @@ function main(): void {
 		isUiEvent: isPadm0nkUiEvent,
 		requestPointerLockIfEnabled: () => {
 			if (!config.lockPointerOnClick) return;
+			// Bug 3: never (re)lock while the binds modal is open — a click inside the
+			// modal must keep the cursor free so the user can dismiss it.
+			if (overlayOpen) return;
 			try {
 				document.documentElement.requestPointerLock?.();
 			} catch {

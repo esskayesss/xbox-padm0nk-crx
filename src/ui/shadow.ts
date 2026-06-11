@@ -81,6 +81,12 @@ export type OverlayProps = {
 	open: boolean;
 	bindings: Bindings;
 	bindIconBase: string;
+	/** Recolored Xbox controller art (center pad-map). */
+	controllerUrl: string;
+	/** Brand icon (overlay header orb). */
+	iconUrl: string;
+	/** Mirror of config.enabled — drives the on/off subtitle + orb dim. */
+	enabled: boolean;
 	toggleCombo: Combo;
 	helpCombo: Combo;
 	/** Invoked when the user closes via the close button or backdrop click. */

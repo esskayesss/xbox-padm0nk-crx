@@ -642,3 +642,30 @@ run build/tests, update todos + this file's "Progress log".
     files use Prettier code style!". `npm run build` → `✓ built in 1.06s`. Did not
     touch code, so typecheck/test untouched (still 64 green from P6).
 ```
+
+## Progress log — 2026-06-12 (P6-fix: UI regressions + pointer-lock)
+
+- **controllerUrl wiring (bug 1)**: `OverlayProps` in `src/ui/shadow.ts` extended
+  with `controllerUrl`, `iconUrl`, `enabled`. `inject.ts` now captures
+  `controllerUrl` from the bridge message and `overlayProps()` passes
+  `controllerUrl`, `iconUrl`, `enabled: config.enabled`. The recolored Xbox
+  controller art now renders in the overlay center pad-map.
+- **Overlay layout rebuild (bug 1)**: `BindsOverlay.svelte` rebuilt to legacy
+  3-column fidelity — header (brand orb + title/subtitle + Toggle/Close legends +
+  × close), LEFT rail (LT/LB/Left stick/L3/D-pad×4), CENTER pad-map (controller
+  art + absolute View/Guide/Menu system-chip row + aim bar), RIGHT rail
+  (RT/RB/Right stick info/R3/A/B/X/Y). Rows resolve bound inputs via
+  `boundInputs()` → prettyInput join " / " else "UNMAPPED". Tailwind + theme
+  tokens (var(--color-pad-*)/rgba for glows/gradients/aspect-744:500/absolute
+  positioning). Stacks to 1-col under 900px, center order-first.
+- **Pointer-lock fix (bug 3)**: `onHelpCombo()` calls `document.exitPointerLock()`
+  (try/catch) when the overlay transitions to OPEN, so the cursor returns and the
+  modal is clickable even after the lock-retarget edge case. `requestPointerLock-
+  IfEnabled` returns early while `overlayOpen` so clicks inside the modal never
+  (re)lock. `isPadm0nkUiEvent` composedPath check remains primary click-safety.
+- **HUD icon (bug 2)**: verified — `Hud.svelte` already renders
+  `<img src={iconUrl}>` reactively (post-mount bridge update) with the green
+  gradient orb bg + grayscale/dim when disabled; fallback "p" only when iconUrl
+  is empty. Brand orb also restored in the overlay header. No code bug found.
+- **Gates**: typecheck 0 errors/0 warnings · test 64 passed (9 files) ·
+  build ✓ in 1.60s · format:check clean. core/storage/mapper/tests untouched.
