@@ -1,0 +1,3 @@
+# Local fonts are added in a later phase (Tier 3 bug #6: stop hotlinking Xbox CDN).
+# This .gitkeep ensures the dir exists so the manifest WAR glob (assets/fonts/*.woff)
+# does not break the build.

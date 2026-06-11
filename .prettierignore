@@ -1,0 +1,13 @@
+node_modules/
+dist/
+*.zip
+
+# Legacy runtime retired to .local/legacy/ (gitignored) — not reformatted.
+.local/
+
+# Generated / docs / binary-ish
+docs/
+*.md
+assets/
+icons/
+LICENSE

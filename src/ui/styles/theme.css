@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+
+/*
+ * padm0nk palette — single source of color truth (REBUILD.md "Palette").
+ * Tailwind v4 @theme: --color-* tokens generate utilities like text-pad-accent.
+ * TODO(P4/P5): extend with gradient panel vars + remaining greys as needed.
+ */
+@theme {
+	--color-pad-green: #107c10;
+	--color-pad-accent: #9fef7f;
+	--color-pad-bg: #0f0f14;
+	--color-pad-bg-2: #14141a;
+	--color-pad-bg-3: #16161c;
+	--color-pad-muted: #8a8a93;
+	--color-pad-danger: #ff7b7b;
+	--color-pad-border: #34343f;
+	--color-pad-chip: #23232d;
+	--color-pad-text: #f4fff2;
+}
