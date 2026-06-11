@@ -79,8 +79,22 @@ export function installInputCapture(ctrl: CaptureController): () => void {
 	let pointerLocked = document.pointerLockElement != null;
 
 	// --- Keyboard --------------------------------------------------------------
+	// TEMP DIAGNOSTIC (remove after the Space/xCloud investigation): log the first
+	// time we see each bound key so we can confirm on xbox.com that our handler
+	// actually runs and suppresses. See REBUILD.md "Space bug".
+	const diagSeen = new Set<string>();
+	function diag(code: string, mapped: boolean, enabled: boolean): void {
+		if (diagSeen.has(code)) return;
+		diagSeen.add(code);
+		console.log(
+			`[padm0nk] keydown ${code} mapped=${mapped} enabled=${enabled} ` +
+				`locked=${pointerLocked} -> ${mapped && enabled ? 'SUPPRESS+apply' : 'pass-through'}`,
+		);
+	}
+
 	function onKey(e: KeyboardEvent, down: boolean): void {
 		const config = ctrl.getConfig();
+		if (down && !e.repeat) diag(e.code, ctrl.isBound(e.code), config.enabled);
 
 		// Combos + Escape are checked BEFORE the enabled gate, so the toggle combo
 		// can re-enable a disabled pad. Combos only on a fresh (non-repeat) down.
