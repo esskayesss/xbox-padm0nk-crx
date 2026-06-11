@@ -1,117 +1,136 @@
-# 🎮 padm0nk — Keyboard & Mouse for Xbox Cloud Gaming
+# padm0nk — Mouse and keyboard for Xbox Cloud Gaming
 
-Play **Xbox Cloud Gaming (xCloud)** with a mouse and keyboard. padm0nk emulates an
-Xbox controller **inside the browser** by overriding the Gamepad API on the xCloud
-page — so it works **on macOS and Windows identically**, with:
+padm0nk lets desktop Chromium players use mouse and keyboard on Xbox Cloud Gaming by presenting a virtual Xbox controller to the page. No driver install, no native helper app, no account, no telemetry. Open the extension, lock your mouse, tune aim, queue up.
 
-- ❌ no ViGEmBus / virtual driver (Windows)
-- ❌ no DriverKit / entitlements / disabling SIP (macOS)
-- ❌ no native app, no extra latency
-- ✅ just a Chrome/Edge extension
+This repo is for players, tinkerers, and contributors who want xCloud controls to feel less like menu wrestling and more like a proper loadout.
 
-Mouse → right stick (aim), WASD → left stick, keys/clicks → buttons.
+## What it does
 
-## Install (Load unpacked)
+- Maps WASD to left stick movement.
+- Maps mouse movement to right stick aim through Pointer Lock.
+- Maps keyboard, mouse buttons, and wheel input to Xbox controls.
+- Runs entirely in browser page context through Gamepad API injection.
+- Keeps settings local with live updates to open xCloud and tester tabs.
+- Ships advanced remapping, sensitivity, smoothing, aim curve, invert-Y, import/export, and reset.
 
-1. Open **Chrome** or **Edge** → `chrome://extensions` (or `edge://extensions`).
-2. Toggle **Developer mode** (top-right).
-3. Click **Load unpacked** and select this `padkey-web/` folder.
-4. Done. The extension activates on `xbox.com/play` and gamepad-tester sites.
+## Install from source
 
-> Works in any Chromium browser. **Not** Safari (WebKit reads gamepads via
-> GameController.framework and ignores page-level pads — use Chrome/Edge for xCloud).
+1. Open Chrome or Edge.
+2. Go to `chrome://extensions` or `edge://extensions`.
+3. Enable Developer mode.
+4. Click Load unpacked.
+5. Select this repo folder.
+6. Visit <https://www.xbox.com/play> or a gamepad tester.
 
-## Test it FIRST (before xCloud)
+Desktop Chromium required. Safari/WebKit ignores this page-level virtual pad path. Android Chromium lacks needed Pointer Lock behavior for this use case.
 
-1. Open <https://hardwaretester.com/gamepad> (or gamepad-tester.com).
-2. Press **any mapped key** (e.g. `Space`) — a controller should appear:
-   *"padm0nk Virtual Xbox 360 Controller ... STANDARD GAMEPAD"*.
-3. Press WASD → left stick moves. Click the page → mouse locks → move mouse →
-   right stick moves. `Esc` releases the mouse. `F8` toggles padm0nk on/off.
-   `F9` shows/hides the in-game keybind overlay.
+## Test before dropping into xCloud
 
-If the pad shows up and sticks/buttons respond, you're good for xCloud.
+1. Open <https://hardwaretester.com/gamepad> or <https://gamepad-tester.com>.
+2. Press mapped input such as `Space`.
+3. Confirm `padm0nk Virtual Xbox 360 Controller` appears.
+4. Press WASD and confirm left stick moves.
+5. Click page, move mouse, and confirm right stick moves.
+6. Press `Esc` to release mouse.
 
-## Use on xCloud
+If tester sees pad and inputs move, xCloud should see same controller layer.
 
-1. Go to <https://www.xbox.com/play> and start a game.
-2. Click the video to **lock the mouse** (enables aim).
-3. Play. Press `F8` to switch back to a real controller anytime.
-4. Tune **mouse sensitivity / smoothing / aim minimum / aim curve** in the toolbar popup. In-game, turn the
-   look/aim sensitivity up and **disable aim deadzone** if the game has one.
+## Use on Xbox Cloud Gaming
 
-Aim tuning starting point for shooters:
+1. Go to <https://www.xbox.com/play>.
+2. Start a game.
+3. Click game video to lock mouse for aim.
+4. Press `F8` to toggle padm0nk if you need real-controller control back.
+5. Press `F9` while game page has focus to show current keybinds overlay.
+6. Tune settings from extension popup.
+
+Shooter starter settings:
 
 - Sensitivity: `0.018–0.030`
 - Smoothing: `0.10–0.25`
-- Aim min: `0.10–0.18` (raises tiny mouse movements above hidden game deadzones)
-- Aim curve: `0.60–0.85` (`<1` boosts fine movements; `1` is linear)
+- Aim min: `0.10–0.18`
+- Aim curve: `0.60–0.85`
 
-## Configure / remap
-
-Open the extension popup → **Advanced remapping…**. The options page supports:
-
-- click-to-capture remaps for every Xbox button and left-stick direction
-- multiple inputs per Xbox control
-- keyboard, mouse button, and mouse wheel bindings
-- toggle key-combo remap
-- show-keybinds overlay combo remap
-- sensitivity, smoothing, invert-Y, pointer-lock behaviour
-- import/export profile JSON
-- full reset to defaults
-
-Config changes apply live to open xCloud/tester tabs. If a tab somehow misses an update, hard-refresh it.
+In-game, raise look sensitivity and disable aim deadzone when game allows it. Hidden deadzones are final boss here.
 
 ## Default bindings
 
-| Input | Xbox |
-|---|---|
-| W/A/S/D | Left stick (move) |
-| Mouse move | Right stick (aim) |
-| Left click | RT (fire) |
-| Right click | LT (aim) |
+| Input | Xbox control |
+| --- | --- |
+| W/A/S/D | Left stick |
+| Mouse move | Right stick |
+| Left click | RT |
+| Right click | LT |
 | Space | A |
 | Ctrl | B |
 | R | X |
 | F | Y |
 | Q / E | LB / RB |
 | Shift / C | L3 / R3 |
-| Tab / Enter / Backquote | View / Menu / Guide |
+| Tab | View |
+| Enter | Menu |
+| Backquote | Guide |
 | Arrows or 1-4 | D-pad |
-| F8 | Toggle padm0nk (configurable combo) |
-| F9 | Show/hide keybind overlay (configurable combo) |
+| F8 | Toggle padm0nk |
+| F9 | Show/hide keybind overlay |
 
-## How it works
+Open extension popup, then Advanced remapping, to change bindings. Multiple inputs per Xbox control are supported.
 
-`inject.js` runs in the page's **MAIN world** at `document_start`, before xCloud's
-code, and replaces `navigator.getGamepads()` with a virtual Xbox pad whose axes and
-buttons are driven by keyboard + mouse events. `bridge.js` (isolated world) relays
-your popup/settings config from `chrome.storage.local` into the page for live updates,
-with `chrome.storage.sync` kept as a debounced backup.
+## Why browser-only
+
+padm0nk patches `navigator.getGamepads()` from `src/inject.js` in page MAIN world at `document_start`. xCloud asks browser for gamepads, browser answers with padm0nk virtual Xbox pad, and input state comes from keyboard and mouse events.
+
+`src/bridge.js` runs as extension-side relay. Popup and options write config to `chrome.storage.local`; bridge forwards updates into page so active games can adapt without reinstalling extension or restarting browser.
+
+This keeps install surface small:
+
+- No ViGEmBus.
+- No DriverKit.
+- No kernel extensions.
+- No helper daemon.
+- No server.
+
+## Project status
+
+Current build is hackable, playable, and intentionally small. Expect xCloud changes to occasionally break injection or input assumptions. If that happens, open an issue with browser, OS, game, tester result, console errors, and whether `F8`/`F9` respond.
+
+`pi-coding-agent` helped develop current application state and this repo refresh on behalf of esskayesss: icon rollout, README cleanup, keybind overlay investigation, and ongoing maintenance support. Blame humans for taste. Credit robots for tireless grep.
+
+## Contributing
+
+Good contributions:
+
+- Fix broken xCloud detection or injection timing.
+- Improve aim feel without adding native dependencies.
+- Make remapping clearer.
+- Keep privacy local-only.
+- Keep install instructions honest.
+- Keep Xbox vibe loud but usable.
+
+Before sending changes, test in a gamepad tester and on xCloud if possible.
+
+## Packaging
+
+```bash
+./scripts/pack.sh
+```
+
+Script writes `dist/padm0nk-<version>.zip` with runtime files only. Privacy policy source lives at [`docs/privacy.html`](docs/privacy.html). Store dashboards may ask for a public privacy URL; host that file however you prefer.
 
 ## Limitations
 
-- Only runs on the allow-listed sites (xCloud + gamepad testers) by design.
-- Mouse aim uses pointer lock; some games still need their in-game sensitivity raised.
-- **Desktop Chromium only.** Pointer Lock is required for aim, so Safari/WebKit and
-  Chromium on Android cannot work. Use Chrome or Edge on Windows/macOS/Linux.
-- xCloud occasionally changes its input handling; an update can temporarily break
-  injection until the extension is updated.
-- If xCloud is set to its built-in **Native Mouse & Keyboard** mode, it bypasses the
-  gamepad layer — keep the controller input mode selected for padm0nk to work.
-
-## Packaging & publishing
-
-```sh
-./scripts/pack.sh   # writes dist/padm0nk-<version>.zip (runtime files only)
-```
-
-Upload the zip to the Chrome Web Store / Edge Add-ons. The privacy policy lives in
-`docs/privacy.html` and is meant to be served via GitHub Pages (Settings → Pages →
-source: `/docs`), giving a public URL to paste into the store dashboard.
+- xCloud only sees padm0nk on allow-listed pages.
+- Pointer Lock is required for mouse aim.
+- Native mouse-and-keyboard mode in xCloud bypasses controller emulation. Use controller input mode.
+- Some games have heavy deadzones or aim curves that need tuning.
+- Browser and xCloud updates can break behavior.
 
 ## Disclaimer
 
-padm0nk is an independent tool. It is **not affiliated with, endorsed by, or sponsored
-by Microsoft**. Xbox is a trademark of Microsoft Corporation. No data is collected or
-transmitted — see [`docs/privacy.html`](docs/privacy.html).
+padm0nk is independent software. It is not affiliated with, endorsed by, or sponsored by Microsoft. Xbox is a trademark of Microsoft Corporation. padm0nk does not collect or transmit user data; see [`docs/privacy.html`](docs/privacy.html).
+
+## Controller diss, requested by esskayesss
+
+Controllers had good run. Respect to couch warriors, claw-grip elders, stick-drift survivors, and everyone who learned to aim by gently bullying two tiny mushrooms. But some of us want crosshair control, not thumb-based astrology. Some of us want reload on `R`, not whatever plastic rune decided today. Some of us looked at right stick acceleration and said: absolutely not, send mouse.
+
+So padm0nk walks into xCloud wearing green LEDs, drops WASD on left stick, bolts mouse aim to right stick, and tells controllers to hold this L in party chat. Is this a little cringe? Yes. Is it still cleaner than pretending stick drift is personality? Also yes.

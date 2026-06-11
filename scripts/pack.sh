@@ -19,6 +19,7 @@ zip -r -q "$OUT" \
 	icons/icon-32.png \
 	icons/icon-48.png \
 	icons/icon-128.png \
+	icons/padm0nk.png \
 	-x "*.DS_Store"
 
 echo "Packaged $OUT"
