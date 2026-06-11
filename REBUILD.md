@@ -685,3 +685,33 @@ run build/tests, update todos + this file's "Progress log".
 - Fixed page scroll behind modal: coordinator locks <html>/<body> overflow
   while overlay open (saves/restores prior inline value) + backdrop wheel guard.
 - Gates: typecheck 0/0, 64 tests, build ✓.
+
+## Progress log — 2026-06-12 (CSS hygiene + popup polish)
+- **Tokens consumed** (added prior in theme.css): colors pad-surface/-2/-hairline/
+  -strip, text-2xs, aspect-controller, grid-cols-binds/-field, shadow-pad-*,
+  drop-shadow-pad-*, and component classes pad-orb(/-hud), pad-surface,
+  pad-hud-bg, pad-panel-bg, pad-card-bg, pad-padmap-bg, pad-strip-bg, pad-aim-bg,
+  pad-art-glow, pad-icon-glow.
+- **Hud.svelte**: dock grid-cols-[48px_auto]→flex; bg/shadow inline→pad-hud-bg
+  (border toggles kept); orb inline gradient→pad-orb-hud; hint rows
+  grid-cols-[auto_1fr]→flex+min-w-0; text-[10px]/tracking-[0.14em]→
+  text-2xs/tracking-widest; min-width:218px→min-w-56.
+- **BindsOverlay.svelte**: panel rounded-3xl/p-[22px]→rounded-lg/p-5, inline
+  gradient+shadow→pad-panel-bg, border→border-pad-accent/40; brand orb→pad-orb;
+  art/icon drop-shadows→pad-art-glow/pad-icon-glow; rail+chip rows
+  grid-cols-[34px_1fr]/[24px_auto]→flex (size-9/shrink-0 icon, pad-surface);
+  body grid→grid-cols-binds; aspect-[744/500]→aspect-controller; center→
+  pad-card-bg, pad-map→pad-padmap-bg, strip→pad-strip-bg, aim→pad-aim-bg;
+  rounded/text/tracking/leading/spacing all mapped to the scale.
+- **Options.svelte**: max-w-[760px]→max-w-3xl, px-[22px]→px-5, grid-cols-[140px_1fr]
+  →grid-cols-field, tracking-[0.08em]→tracking-widest, text-[13px]→text-sm,
+  max-w-[420px]→max-w-md, h-[150px]→h-36, mt-[18px]→mt-4. Zero brackets remain.
+- **Popup enhanced**: added branded orb header (pad-orb + icon via getURL +
+  ON/OFF echo), prominent enable toggle, slider/behaviour groups on bg-pad-surface
+  cards with live values, footer (Advanced…/Reset) + combo hints. w-[280px]→w-70,
+  text-[13px]→text-sm, w-[42px]→w-10. Config/registry-driven; no new config keys.
+- **Sweep proof**: only whitelisted viewport brackets remain — Hud
+  max-w-[min(320px,calc(100vw-24px))]; BindsOverlay max-h-[calc(100vh-32px)] +
+  w-[min(1040px,calc(100vw-32px))]. Options + Popup: zero.
+- **Gates**: typecheck 0/0 · 64 tests pass · build ✓ (1.41s) · format:check clean.
+  core/storage/mapper/tests untouched.

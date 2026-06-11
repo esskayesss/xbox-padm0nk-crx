@@ -1,11 +1,27 @@
 @import 'tailwindcss';
 
 /*
- * padm0nk palette — single source of color truth (REBUILD.md "Palette").
- * Tailwind v4 @theme: --color-* tokens generate utilities like text-pad-accent.
- * TODO(P4/P5): extend with gradient panel vars + remaining greys as needed.
+ * padm0nk design tokens — the SINGLE source of style truth.
+ *
+ * Rule of the house (see REBUILD.md "Hygiene"): components must NOT use
+ * arbitrary Tailwind brackets (rounded-[14px], p-[7px], text-[10px], ...) or
+ * scattered inline CSS with magic numbers. Use the stable scale (rounded-sm,
+ * p-2, text-sm) and the tokens / component classes defined HERE. If a value is
+ * missing, add a token below — never inline a magic number in a component.
+ *
+ * Radius policy: most controls are ~4px (rounded-sm). Cards rounded-md, the
+ * big panels rounded-lg. No over-rounding (xCloud itself sits around 4px).
+ *
+ * Tailwind v4 @theme: tokens in a known namespace generate utilities, e.g.
+ *   --color-pad-accent  -> text-pad-accent / bg-pad-accent / border-pad-accent
+ *   --text-2xs          -> text-2xs
+ *   --shadow-pad-panel  -> shadow-pad-panel
+ *   --drop-shadow-pad-*  -> drop-shadow-pad-*
+ *   --aspect-controller -> aspect-controller
+ *   --grid-template-columns-binds -> grid-cols-binds
  */
 @theme {
+	/* Palette — single source of color truth. */
 	--color-pad-green: #107c10;
 	--color-pad-accent: #9fef7f;
 	--color-pad-bg: #0f0f14;
@@ -16,4 +32,113 @@
 	--color-pad-border: #34343f;
 	--color-pad-chip: #23232d;
 	--color-pad-text: #f4fff2;
+
+	/* Surfaces layered over arbitrary page backgrounds (translucent). */
+	--color-pad-surface: rgba(255, 255, 255, 0.045);
+	--color-pad-surface-2: rgba(255, 255, 255, 0.035);
+	--color-pad-hairline: rgba(255, 255, 255, 0.09);
+	--color-pad-strip: rgba(5, 9, 12, 0.72);
+
+	/* Type: add the 10px step the UI needs (default scale has no 2xs). */
+	--text-2xs: 0.625rem;
+	--text-2xs--line-height: 1rem;
+
+	/* Structural tokens (replace the few legitimate layout brackets). */
+	--aspect-controller: 744 / 500;
+	--grid-template-columns-binds: minmax(11.25rem, 0.75fr) minmax(25.625rem, 1.5fr)
+		minmax(11.25rem, 0.75fr);
+	--grid-template-columns-field: 8.75rem 1fr;
+
+	/* Box shadows (themed glows). */
+	--shadow-pad-panel:
+		0 28px 90px rgba(0, 0, 0, 0.62),
+		0 0 42px color-mix(in srgb, var(--color-pad-green) 18%, transparent);
+	--shadow-pad-hud:
+		0 14px 40px rgba(0, 0, 0, 0.45),
+		0 0 26px color-mix(in srgb, var(--color-pad-green) 16%, transparent);
+	--shadow-pad-orb:
+		0 0 24px color-mix(in srgb, var(--color-pad-green) 56%, transparent),
+		inset 0 0 18px rgba(255, 255, 255, 0.12);
+	--shadow-pad-strip: 0 12px 28px rgba(0, 0, 0, 0.34);
+
+	/* Drop shadows (filter) for art + icons. */
+	--drop-shadow-pad-art: 0 18px 28px rgba(0, 0, 0, 0.55);
+	--drop-shadow-pad-icon: 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+
+/*
+ * Component classes — centralize the decorative gradients/glows so components
+ * carry semantic class names instead of scattered inline CSS. All magic lives
+ * here, referencing palette tokens above.
+ */
+@layer components {
+	/* Brand icon orb (HUD + overlay header). */
+	.pad-orb {
+		background: linear-gradient(
+			145deg,
+			color-mix(in srgb, var(--color-pad-green) 88%, transparent),
+			color-mix(in srgb, var(--color-pad-green) 28%, black)
+		);
+		box-shadow: var(--shadow-pad-orb);
+	}
+	/* HUD-dock variant: subtler gradient, no outer glow. */
+	.pad-orb-hud {
+		background: linear-gradient(
+			145deg,
+			color-mix(in srgb, var(--color-pad-green) 78%, transparent),
+			color-mix(in srgb, var(--color-pad-green) 30%, black)
+		);
+	}
+
+	/* Translucent surfaces. */
+	.pad-surface {
+		background: var(--color-pad-surface);
+		border-color: var(--color-pad-hairline);
+	}
+	.pad-hud-bg {
+		background: color-mix(in srgb, var(--color-pad-bg) 94%, transparent);
+		box-shadow: var(--shadow-pad-hud);
+	}
+
+	/* Overlay panel + cards. */
+	.pad-panel-bg {
+		background: linear-gradient(
+			145deg,
+			color-mix(in srgb, var(--color-pad-bg-2) 96%, transparent),
+			color-mix(in srgb, var(--color-pad-bg) 96%, transparent)
+		);
+		box-shadow: var(--shadow-pad-panel);
+	}
+	.pad-card-bg {
+		background:
+			radial-gradient(
+				circle at 50% 18%,
+				color-mix(in srgb, var(--color-pad-green) 22%, transparent),
+				transparent 42%
+			),
+			var(--color-pad-surface-2);
+	}
+	.pad-padmap-bg {
+		background: radial-gradient(
+			circle at 50% 42%,
+			color-mix(in srgb, var(--color-pad-green) 25%, transparent),
+			transparent 48%
+		);
+	}
+	.pad-strip-bg {
+		background: var(--color-pad-strip);
+		box-shadow: var(--shadow-pad-strip);
+	}
+	.pad-aim-bg {
+		background: color-mix(in srgb, var(--color-pad-green) 18%, transparent);
+	}
+
+	/* Art + icon glows (filters). */
+	.pad-art-glow {
+		filter: drop-shadow(var(--drop-shadow-pad-art))
+			drop-shadow(0 0 18px color-mix(in srgb, var(--color-pad-green) 24%, transparent));
+	}
+	.pad-icon-glow {
+		filter: drop-shadow(var(--drop-shadow-pad-icon));
+	}
 }

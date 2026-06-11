@@ -248,7 +248,7 @@
 </script>
 
 <div
-	class="bg-pad-bg text-pad-text mx-auto min-h-screen max-w-[760px] px-[22px] pt-7 pb-16 font-sans text-sm leading-relaxed"
+	class="bg-pad-bg text-pad-text mx-auto min-h-screen max-w-3xl px-5 pt-7 pb-16 font-sans text-sm leading-relaxed"
 >
 	<h1 class="text-pad-accent m-0 mb-1 flex items-center gap-2 text-xl">
 		🎮 padm0nk Configuration
@@ -268,7 +268,7 @@
 	{#if conflictNotice}
 		<div
 			role="status"
-			class="border-pad-accent/40 bg-pad-green/10 text-pad-accent mb-2 rounded-md border px-3 py-2 text-[13px]"
+			class="border-pad-accent/40 bg-pad-green/10 text-pad-accent mb-2 rounded-md border px-3 py-2 text-sm"
 		>
 			⚠ {conflictNotice}
 		</div>
@@ -277,7 +277,7 @@
 	<!-- Remapping sections, generated from the registry. -->
 	{#each groups as group (group.title)}
 		<h2
-			class="text-pad-muted border-pad-chip mt-7 mb-2.5 border-b pb-1.5 text-sm font-normal tracking-[0.08em] uppercase"
+			class="text-pad-muted border-pad-chip mt-7 mb-2.5 border-b pb-1.5 text-sm font-normal tracking-widest uppercase"
 		>
 			{group.title}
 		</h2>
@@ -285,13 +285,13 @@
 			<div class="text-pad-muted italic">{group.info}</div>
 		{/if}
 		{#if group.items.length}
-			<div class="grid grid-cols-[140px_1fr] items-center gap-x-3.5 gap-y-2">
+			<div class="grid grid-cols-field items-center gap-x-3.5 gap-y-2">
 				{#each group.items as item (item.id)}
 					<div class="text-pad-text/80">{item.label}</div>
 					<div class="flex flex-wrap items-center gap-1.5">
 						{#each inputsFor(item.action) as id (id)}
 							<span
-								class="bg-pad-chip border-pad-border inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[13px]"
+								class="bg-pad-chip border-pad-border inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm"
 							>
 								<b class="text-pad-accent font-semibold">{prettyInput(id)}</b>
 								<button
@@ -305,7 +305,7 @@
 						{/each}
 						<button
 							type="button"
-							class="cursor-pointer rounded-md border border-dashed px-2.5 py-0.5 text-[13px] {isCapturing(
+							class="cursor-pointer rounded-md border border-dashed px-2.5 py-0.5 text-sm {isCapturing(
 								capturing,
 								'binding',
 								item.id,
@@ -327,13 +327,13 @@
 
 	<!-- Mouse & behaviour -->
 	<h2
-		class="text-pad-muted border-pad-chip mt-7 mb-2.5 border-b pb-1.5 text-sm font-normal tracking-[0.08em] uppercase"
+		class="text-pad-muted border-pad-chip mt-7 mb-2.5 border-b pb-1.5 text-sm font-normal tracking-widest uppercase"
 	>
 		Mouse &amp; behaviour
 	</h2>
 	<div class="flex flex-col gap-1">
 		{#each SLIDERS as s (s.key)}
-			<label class="my-1 flex max-w-[420px] items-center justify-between gap-3">
+			<label class="my-1 flex max-w-md items-center justify-between gap-3">
 				<span>{s.label}</span>
 				<input
 					type="range"
@@ -349,7 +349,7 @@
 				>
 			</label>
 		{/each}
-		<label class="my-1 flex max-w-[420px] items-center justify-between gap-3">
+		<label class="my-1 flex max-w-md items-center justify-between gap-3">
 			<span>Invert Y axis</span>
 			<input
 				type="checkbox"
@@ -358,7 +358,7 @@
 				onchange={(e) => setBool('invertY', e.currentTarget.checked)}
 			/>
 		</label>
-		<label class="my-1 flex max-w-[420px] items-center justify-between gap-3">
+		<label class="my-1 flex max-w-md items-center justify-between gap-3">
 			<span>Lock pointer on click (aim)</span>
 			<input
 				type="checkbox"
@@ -367,11 +367,11 @@
 				onchange={(e) => setBool('lockPointerOnClick', e.currentTarget.checked)}
 			/>
 		</label>
-		<label class="my-1 flex max-w-[420px] items-center justify-between gap-3">
+		<label class="my-1 flex max-w-md items-center justify-between gap-3">
 			<span>Toggle on/off key combo</span>
 			<button
 				type="button"
-				class="cursor-pointer rounded-md border border-dashed px-2.5 py-0.5 text-[13px] {isCapturing(
+				class="cursor-pointer rounded-md border border-dashed px-2.5 py-0.5 text-sm {isCapturing(
 					capturing,
 					'toggle',
 				)
@@ -383,11 +383,11 @@
 				{isCapturing(capturing, 'toggle') ? 'press combo… (Esc cancels)' : toggleLabel}
 			</button>
 		</label>
-		<label class="my-1 flex max-w-[420px] items-center justify-between gap-3">
+		<label class="my-1 flex max-w-md items-center justify-between gap-3">
 			<span>Show keybinds combo</span>
 			<button
 				type="button"
-				class="cursor-pointer rounded-md border border-dashed px-2.5 py-0.5 text-[13px] {isCapturing(
+				class="cursor-pointer rounded-md border border-dashed px-2.5 py-0.5 text-sm {isCapturing(
 					capturing,
 					'help',
 				)
@@ -405,35 +405,35 @@
 	<details class="mt-3.5">
 		<summary class="text-pad-muted cursor-pointer">Import / Export profile</summary>
 		<textarea
-			class="bg-pad-bg-3 text-pad-text/80 border-pad-border mt-2 h-[150px] w-full rounded-md border p-2.5 font-mono text-xs leading-relaxed"
+			class="bg-pad-bg-3 text-pad-text/80 border-pad-border mt-2 h-36 w-full rounded-md border p-2.5 font-mono text-xs leading-relaxed"
 			spellcheck="false"
 			bind:value={jsonText}
 		></textarea>
 		<div class="mt-3 flex flex-wrap gap-2.5">
 			<button
 				type="button"
-				class="bg-pad-chip text-pad-text border-pad-border cursor-pointer rounded-md border px-3.5 py-2 text-[13px] hover:brightness-125"
+				class="bg-pad-chip text-pad-text border-pad-border cursor-pointer rounded-md border px-3.5 py-2 text-sm hover:brightness-125"
 				onclick={exportToBox}
 			>
 				Copy current → box
 			</button>
 			<button
 				type="button"
-				class="bg-pad-chip text-pad-text border-pad-border cursor-pointer rounded-md border px-3.5 py-2 text-[13px] hover:brightness-125"
+				class="bg-pad-chip text-pad-text border-pad-border cursor-pointer rounded-md border px-3.5 py-2 text-sm hover:brightness-125"
 				onclick={importFromBox}
 			>
 				Apply from box
 			</button>
 			<button
 				type="button"
-				class="bg-pad-chip text-pad-text border-pad-border cursor-pointer rounded-md border px-3.5 py-2 text-[13px] hover:brightness-125"
+				class="bg-pad-chip text-pad-text border-pad-border cursor-pointer rounded-md border px-3.5 py-2 text-sm hover:brightness-125"
 				onclick={downloadProfile}
 			>
 				Download profile (.json)
 			</button>
 			<button
 				type="button"
-				class="bg-pad-chip text-pad-text border-pad-border cursor-pointer rounded-md border px-3.5 py-2 text-[13px] hover:brightness-125"
+				class="bg-pad-chip text-pad-text border-pad-border cursor-pointer rounded-md border px-3.5 py-2 text-sm hover:brightness-125"
 				onclick={() => fileInput.click()}
 			>
 				Upload profile
@@ -449,10 +449,10 @@
 	</details>
 
 	<!-- Danger zone -->
-	<div class="mt-[18px] flex flex-wrap gap-2.5">
+	<div class="mt-4 flex flex-wrap gap-2.5">
 		<button
 			type="button"
-			class="text-pad-danger cursor-pointer rounded-md border border-red-900 bg-transparent px-3.5 py-2 text-[13px] hover:brightness-125"
+			class="text-pad-danger cursor-pointer rounded-md border border-red-900 bg-transparent px-3.5 py-2 text-sm hover:brightness-125"
 			onclick={resetAll}
 		>
 			Reset everything to defaults

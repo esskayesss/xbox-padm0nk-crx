@@ -117,8 +117,7 @@
 	>
 		<!-- Panel -->
 		<div
-			class="text-pad-text max-h-[calc(100vh-32px)] w-[min(1040px,calc(100vw-32px))] overflow-auto rounded-3xl border p-[22px]"
-			style="border-color:color-mix(in srgb, var(--color-pad-accent) 38%, transparent);background:linear-gradient(145deg, color-mix(in srgb, var(--color-pad-bg-2) 96%, transparent), color-mix(in srgb, var(--color-pad-bg) 96%, transparent));box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 42px color-mix(in srgb, var(--color-pad-green) 18%, transparent);"
+			class="text-pad-text pad-panel-bg border-pad-accent/40 max-h-[calc(100vh-32px)] w-[min(1040px,calc(100vw-32px))] overflow-auto rounded-lg border p-5"
 			onpointerdowncapture={stop}
 			onmousedowncapture={stop}
 			onmouseupcapture={stop}
@@ -129,31 +128,27 @@
 		>
 			<!-- Header: brand orb + title/subtitle | legends + close -->
 			<div
-				class="mb-[18px] flex items-center justify-between gap-[18px] max-[900px]:flex-col max-[900px]:items-start"
+				class="mb-4 flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start"
 			>
 				<div class="flex items-center gap-3.5">
 					<!-- Brand orb (green gradient; dim+grayscale when disabled) -->
-					<span
-						class="grid h-12 w-12 place-items-center overflow-hidden rounded-2xl"
-						style="background:linear-gradient(145deg, color-mix(in srgb, var(--color-pad-green) 88%, transparent), color-mix(in srgb, var(--color-pad-green) 28%, black));box-shadow:0 0 24px color-mix(in srgb, var(--color-pad-green) 56%, transparent), inset 0 0 18px rgba(255,255,255,.12);"
-					>
+					<span class="pad-orb grid size-12 place-items-center overflow-hidden rounded-sm">
 						{#if iconUrl}
 							<img
 								src={iconUrl}
 								alt="padm0nk"
-								class="block h-[38px] w-[38px] object-contain"
+								class="pad-icon-glow block size-9 object-contain"
 								class:grayscale={!enabled}
 								class:opacity-60={!enabled}
-								style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.6));"
 							/>
 						{:else}
 							<span class="text-pad-accent text-lg font-bold" aria-hidden="true">p</span>
 						{/if}
 					</span>
 					<div>
-						<div class="text-[28px] tracking-[0.02em] uppercase">padm0nk binds</div>
+						<div class="text-2xl tracking-wide uppercase">padm0nk binds</div>
 						<div
-							class="mt-[3px] text-[13px] uppercase"
+							class="mt-0.5 text-sm uppercase"
 							class:text-pad-accent={enabled}
 							class:text-pad-muted={!enabled}
 						>
@@ -164,28 +159,19 @@
 
 				<div class="flex items-center gap-2.5">
 					<!-- Toggle / Close legends -->
-					<div
-						class="grid min-w-[260px] grid-cols-2 gap-2.5 max-[900px]:min-w-0 max-[900px]:flex-1"
-					>
-						<div
-							class="rounded-2xl border px-[11px] py-[9px]"
-							style="border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.045);"
-						>
-							<span class="text-pad-muted block text-[11px] uppercase">Toggle</span>
+					<div class="grid min-w-64 grid-cols-2 gap-2.5 max-[900px]:min-w-0 max-[900px]:flex-1">
+						<div class="pad-surface rounded-sm border px-3 py-2">
+							<span class="text-pad-muted block text-xs uppercase">Toggle</span>
 							<span class="text-pad-text block text-sm">{comboLabel(toggleCombo)}</span>
 						</div>
-						<div
-							class="rounded-2xl border px-[11px] py-[9px]"
-							style="border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.045);"
-						>
-							<span class="text-pad-muted block text-[11px] uppercase">Close</span>
+						<div class="pad-surface rounded-sm border px-3 py-2">
+							<span class="text-pad-muted block text-xs uppercase">Close</span>
 							<span class="text-pad-text block text-sm">{comboLabel(helpCombo)} / Esc</span>
 						</div>
 					</div>
 					<button
 						type="button"
-						class="text-pad-text hover:border-pad-accent grid h-9 w-9 shrink-0 place-items-center rounded-full border text-lg leading-none"
-						style="border-color:color-mix(in srgb, var(--color-pad-accent) 24%, transparent);background:color-mix(in srgb, var(--color-pad-chip) 80%, transparent);"
+						class="text-pad-text hover:border-pad-accent border-pad-accent/25 bg-pad-chip/80 grid size-9 shrink-0 place-items-center rounded-sm border text-lg leading-none"
 						onclick={onClose}
 						aria-label="Close binds overlay"
 					>
@@ -195,42 +181,32 @@
 			</div>
 
 			<!-- Body: 3 columns (rails + center pad-map); stacks under 900px -->
-			<div
-				class="grid grid-cols-[minmax(180px,0.75fr)_minmax(410px,1.5fr)_minmax(180px,0.75fr)] items-stretch gap-[18px] max-[900px]:grid-cols-1"
-			>
+			<div class="grid grid-cols-binds items-stretch gap-4 max-[900px]:grid-cols-1">
 				<!-- LEFT rail -->
-				<div class="grid content-start gap-[9px] max-[900px]:grid-cols-2">
+				<div class="grid content-start gap-2 max-[900px]:grid-cols-2">
 					<div
-						class="text-pad-accent mb-[2px] text-xs tracking-[0.12em] uppercase max-[900px]:col-span-full"
+						class="text-pad-accent mb-0.5 text-xs tracking-widest uppercase max-[900px]:col-span-full"
 					>
 						Left side
 					</div>
 					{#each leftRows as row (row.label)}
-						<div
-							class="grid min-h-[44px] grid-cols-[34px_1fr] items-center gap-2.5 rounded-[15px] border px-[9px] py-[7px]"
-							style="border-color:rgba(255,255,255,.09);background:rgba(255,255,255,.045);"
-						>
-							<div class="grid h-[34px] w-[34px] place-items-center">
+						<div class="pad-surface flex min-h-11 items-center gap-2 rounded-sm border px-2 py-2">
+							<div class="grid size-9 shrink-0 place-items-center">
 								{#if bindIconBase}
 									<img
 										src={bindIconBase + row.icon}
 										alt={row.label}
-										class="max-h-[30px] max-w-[30px] object-contain"
-										style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.45));"
+										class="pad-icon-glow max-h-7 max-w-7 object-contain"
 									/>
 								{:else}
 									<span class="text-pad-muted text-xs" aria-hidden="true">•</span>
 								{/if}
 							</div>
 							<div class="min-w-0">
-								<span class="text-pad-muted block text-[10px] tracking-[0.09em] uppercase">
+								<span class="text-pad-muted block text-2xs tracking-widest uppercase">
 									{row.label}
 								</span>
-								<span
-									class="text-pad-text block truncate leading-[1.2]"
-									class:text-[13px]={row.dpad}
-									class:text-sm={!row.dpad}
-								>
+								<span class="text-pad-text block truncate text-sm leading-tight">
 									{rowValue(row)}
 								</span>
 							</div>
@@ -240,20 +216,17 @@
 
 				<!-- CENTER: controller art on top; system buttons + aim bar docked bottom -->
 				<div
-					class="flex min-w-0 flex-col rounded-[22px] border p-3 max-[900px]:order-first"
-					style="border-color:rgba(255,255,255,.08);background:radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--color-pad-green) 22%, transparent), transparent 42%), rgba(255,255,255,.035);"
+					class="pad-card-bg border-pad-hairline flex min-w-0 flex-col rounded-md border p-3 max-[900px]:order-first"
 				>
 					<div
-						class="relative aspect-[744/500] w-full overflow-hidden rounded-[18px]"
-						style="background:radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--color-pad-green) 25%, transparent), transparent 48%);"
+						class="pad-padmap-bg relative aspect-controller w-full overflow-hidden rounded-md"
 						aria-label="Xbox controller"
 					>
 						{#if controllerUrl}
 							<img
 								src={controllerUrl}
 								alt="Xbox controller"
-								class="absolute inset-0 h-full w-full object-contain"
-								style="filter:drop-shadow(0 18px 28px rgba(0,0,0,.55)) drop-shadow(0 0 18px color-mix(in srgb, var(--color-pad-green) 24%, transparent));"
+								class="pad-art-glow absolute inset-0 h-full w-full object-contain"
 							/>
 						{/if}
 					</div>
@@ -262,26 +235,23 @@
 					<div class="mt-auto grid gap-2.5 pt-3">
 						<!-- View / Guide / Menu strip -->
 						<div
-							class="flex justify-center gap-2 rounded-2xl border p-[7px] backdrop-blur-[10px]"
-							style="border-color:color-mix(in srgb, var(--color-pad-accent) 18%, transparent);background:rgba(5,9,12,.72);box-shadow:0 12px 28px rgba(0,0,0,.34);"
+							class="pad-strip-bg border-pad-accent/20 flex justify-center gap-2 rounded-md border p-2 backdrop-blur-sm"
 						>
 							{#each systemChips as chip (chip.label)}
 								<div
-									class="grid min-w-[100px] grid-cols-[24px_auto] items-center gap-[7px] rounded-[11px] border px-2 py-[5px]"
-									style="border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.045);"
+									class="pad-surface flex w-full min-w-24 items-center gap-2 rounded-sm border px-2 py-1.5"
 								>
 									{#if bindIconBase}
 										<img
 											src={bindIconBase + chip.icon}
 											alt={chip.label}
-											class="h-[22px] w-[22px] object-contain"
-											style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.45));"
+											class="pad-icon-glow size-5 shrink-0 object-contain"
 										/>
 									{:else}
 										<span class="text-pad-muted text-xs" aria-hidden="true">•</span>
 									{/if}
 									<div class="min-w-0">
-										<span class="text-pad-muted block text-[9px] tracking-[0.09em] uppercase">
+										<span class="text-pad-muted block text-2xs tracking-widest uppercase">
 											{chip.label}
 										</span>
 										<span class="text-pad-text block truncate text-xs">{rowValue(chip)}</span>
@@ -292,8 +262,7 @@
 
 						<!-- Aim bar -->
 						<div
-							class="flex items-center justify-between gap-3 rounded-[14px] border px-3 py-2.5"
-							style="border-color:color-mix(in srgb, var(--color-pad-accent) 19%, transparent);background:color-mix(in srgb, var(--color-pad-green) 18%, transparent);"
+							class="pad-aim-bg border-pad-accent/20 flex items-center justify-between gap-3 rounded-sm border px-3 py-2.5"
 						>
 							<span class="text-pad-accent text-xs uppercase">Right stick aim</span>
 							<span class="text-pad-text text-right text-sm"
@@ -304,34 +273,30 @@
 				</div>
 
 				<!-- RIGHT rail -->
-				<div class="grid content-start gap-[9px] max-[900px]:grid-cols-2">
+				<div class="grid content-start gap-2 max-[900px]:grid-cols-2">
 					<div
-						class="text-pad-accent mb-[2px] text-xs tracking-[0.12em] uppercase max-[900px]:col-span-full"
+						class="text-pad-accent mb-0.5 text-xs tracking-widest uppercase max-[900px]:col-span-full"
 					>
 						Right side
 					</div>
 					{#each rightRows as row (row.label)}
-						<div
-							class="grid min-h-[44px] grid-cols-[34px_1fr] items-center gap-2.5 rounded-[15px] border px-[9px] py-[7px]"
-							style="border-color:rgba(255,255,255,.09);background:rgba(255,255,255,.045);"
-						>
-							<div class="grid h-[34px] w-[34px] place-items-center">
+						<div class="pad-surface flex min-h-11 items-center gap-2 rounded-sm border px-2 py-2">
+							<div class="grid size-9 shrink-0 place-items-center">
 								{#if bindIconBase}
 									<img
 										src={bindIconBase + row.icon}
 										alt={row.label}
-										class="max-h-[30px] max-w-[30px] object-contain"
-										style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.45));"
+										class="pad-icon-glow max-h-7 max-w-7 object-contain"
 									/>
 								{:else}
 									<span class="text-pad-muted text-xs" aria-hidden="true">•</span>
 								{/if}
 							</div>
 							<div class="min-w-0">
-								<span class="text-pad-muted block text-[10px] tracking-[0.09em] uppercase">
+								<span class="text-pad-muted block text-2xs tracking-widest uppercase">
 									{row.label}
 								</span>
-								<span class="text-pad-text block truncate text-sm leading-[1.2]">
+								<span class="text-pad-text block truncate text-sm leading-tight">
 									{rowValue(row)}
 								</span>
 							</div>
