@@ -91,11 +91,34 @@ describe('snapshot', () => {
 		expect(g.buttons[5].pressed).toBe(false);
 	});
 
-	it('reuses the same Gamepad object across calls (perf: no per-frame alloc)', () => {
+	it('returns a FRESH snapshot each call so consumers can edge-detect presses', () => {
+		// Regression guard: xCloud's GamepadNavigation caches the previous poll's
+		// button objects and fires on `cur.pressed && !prev.pressed`. If snapshot()
+		// reused/mutated the same objects, prev===cur and the edge never fires —
+		// A/select silently breaks in the xCloud UI. Each call must be independent.
 		const s = createGamepadState();
-		const a = snapshot(s, 0);
-		const b = snapshot(s, 0);
-		expect(a).toBe(b);
+		s.connected = true;
+
+		// frame 1: A released
+		s.buttons[0] = 0;
+		const prev = snapshot(s, 0);
+		expect(prev.buttons[0].pressed).toBe(false);
+
+		// frame 2: A pressed
+		s.buttons[0] = 1;
+		const cur = snapshot(s, 0);
+
+		// distinct object graphs (gamepad, buttons array, button wrappers, axes)
+		expect(cur).not.toBe(prev);
+		expect(cur.buttons).not.toBe(prev.buttons);
+		expect(cur.buttons[0]).not.toBe(prev.buttons[0]);
+		expect(cur.axes).not.toBe(prev.axes);
+
+		// the earlier snapshot must NOT retroactively reflect the new state
+		expect(prev.buttons[0].pressed).toBe(false);
+		expect(cur.buttons[0].pressed).toBe(true);
+		// => the press edge is observable
+		expect(cur.buttons[0].pressed && !prev.buttons[0].pressed).toBe(true);
 	});
 
 	it('vibrationActuator stub is dual-rumble and playEffect resolves', async () => {

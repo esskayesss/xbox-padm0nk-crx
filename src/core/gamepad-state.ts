@@ -38,31 +38,6 @@ export function resetGamepadState(state: GamepadState): void {
 	state.axes.fill(0);
 }
 
-/**
- * Per-state snapshot cache for the W3C Gamepad object the page sees.
- *
- * Bug 5 (perf): legacy allocated a fresh Gamepad object, a fresh buttons array of
- * 17 fresh `{pressed,touched,value}` objects, a fresh axes array, AND a fresh
- * vibrationActuator on EVERY getGamepads() call — i.e. every animation frame the
- * page polls. That thrashes GC under steady polling.
- *
- * Reuse strategy: one cache per GamepadState, kept in a WeakMap (so the
- * GamepadState type stays pure and caches are GC'd with their state). The cache
- * holds a single Gamepad object, a persistent buttons array of 17 reused button
- * wrappers, a persistent axes array, and a single vibrationActuator stub.
- * `snapshot()` mutates these in place and returns the same object each call. The
- * returned object always reflects current state at call time (callers read it
- * synchronously inside their poll), matching legacy observable behaviour with
- * near-zero per-frame allocation.
- */
-interface SnapshotCache {
-	gamepad: Gamepad;
-	buttons: GamepadButton[];
-	axes: number[];
-}
-
-const snapshotCaches = new WeakMap<GamepadState, SnapshotCache>();
-
 function vibrationActuatorStub(): GamepadHapticActuator {
 	return {
 		type: 'dual-rumble',
@@ -71,15 +46,35 @@ function vibrationActuatorStub(): GamepadHapticActuator {
 	} as unknown as GamepadHapticActuator;
 }
 
-function makeCache(state: GamepadState): SnapshotCache {
-	const buttons: GamepadButton[] = [];
+/**
+ * Build the W3C Gamepad object the page sees, reflecting current `state`.
+ *
+ * IMPORTANT — fresh objects every call (do NOT reuse/cache):
+ * Real browsers return an immutable, point-in-time SNAPSHOT from each
+ * `getGamepads()` call. Consumers (notably xCloud's own `GamepadNavigation`)
+ * edge-detect a button press by caching the previous poll's button objects and
+ * comparing `current.buttons[i].pressed && !prev.buttons[i].pressed`. If we hand
+ * back the SAME object instances and mutate them in place, `current` and `prev`
+ * alias the same objects, the comparison collapses to `x && !x === false`, and
+ * the press edge never fires — i.e. A/select silently stops working in the UI
+ * even though the value is correct. An earlier "perf" optimization reused a
+ * cached object per state and caused exactly that regression. Allocating fresh
+ * here matches legacy behaviour and the W3C contract; per-frame GC of a handful
+ * of small objects is negligible next to correct edge detection.
+ */
+export function snapshot(state: GamepadState, index = 0): Gamepad {
+	const buttons: GamepadButton[] = new Array(state.buttons.length);
 	for (let i = 0; i < state.buttons.length; i++) {
-		buttons.push({ pressed: false, touched: false, value: 0 });
+		const v = state.buttons[i] ?? 0;
+		buttons[i] = { pressed: v > 0.5, touched: v > 0, value: v };
 	}
-	const axes = new Array<number>(state.axes.length).fill(0);
-	const gamepad = {
+	const axes = new Array<number>(state.axes.length);
+	for (let i = 0; i < state.axes.length; i++) {
+		axes[i] = state.axes[i] ?? 0;
+	}
+	return {
 		id: GAMEPAD_ID,
-		index: 0,
+		index,
 		connected: state.connected,
 		mapping: GAMEPAD_MAPPING,
 		timestamp: state.timestamp,
@@ -88,40 +83,4 @@ function makeCache(state: GamepadState): SnapshotCache {
 		vibrationActuator: vibrationActuatorStub(),
 		hapticActuators: [],
 	} as unknown as Gamepad;
-	return { gamepad, buttons, axes };
-}
-
-/**
- * Build the W3C Gamepad object the page sees, reflecting current `state`.
- * Reuses persistent buffers (see SnapshotCache) — mutated in place each call.
- */
-export function snapshot(state: GamepadState, index = 0): Gamepad {
-	let cache = snapshotCaches.get(state);
-	if (!cache) {
-		cache = makeCache(state);
-		snapshotCaches.set(state, cache);
-	}
-
-	// Button wrappers: mutate the reused {pressed,touched,value} objects in place.
-	for (let i = 0; i < state.buttons.length; i++) {
-		const v = state.buttons[i] ?? 0;
-		const b = cache.buttons[i] as { pressed: boolean; touched: boolean; value: number };
-		b.pressed = v > 0.5;
-		b.touched = v > 0;
-		b.value = v;
-	}
-	// Axes: copy current values into the reused array.
-	for (let i = 0; i < state.axes.length; i++) {
-		cache.axes[i] = state.axes[i] ?? 0;
-	}
-
-	const g = cache.gamepad as unknown as {
-		index: number;
-		connected: boolean;
-		timestamp: number;
-	};
-	g.index = index;
-	g.connected = state.connected;
-	g.timestamp = state.timestamp;
-	return cache.gamepad;
 }

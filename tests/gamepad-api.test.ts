@@ -91,7 +91,12 @@ describe('createGetGamepadsOverride', () => {
 			isEnabled: () => true,
 		});
 		const out = fn();
-		expect(out[0]).toBe(snapshot(state, 0));
+		// fresh snapshot per call (not the same instance), but reflects live state
+		const ref = snapshot(state, 0);
+		expect(out[0]).not.toBe(ref);
+		expect(out[0]!.id).toBe(ref.id);
+		expect(out[0]!.index).toBe(0);
+		expect(out[0]!.connected).toBe(true);
 		expect(out[0]!.buttons[0].pressed).toBe(true);
 	});
 });

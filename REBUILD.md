@@ -715,3 +715,29 @@ run build/tests, update todos + this file's "Progress log".
   w-[min(1040px,calc(100vw-32px))]. Options + Popup: zero.
 - **Gates**: typecheck 0/0 · 64 tests pass · build ✓ (1.41s) · format:check clean.
   core/storage/mapper/tests untouched.
+
+## Space/UI "select" regression — ROOT CAUSE (2026-06-12)
+
+**Symptom:** In the xCloud UI/dashboard/guide, pressing a bound key (e.g. Space→A)
+did not "select"; instead People opened and the page scrolled. In-game it worked.
+Existed in refactor only — legacy worked on Chrome.
+
+**Not** the keyboard: console diag proved Space is `SUPPRESS+apply` (our capture
+runs and swallows). **Not** xbox-specific: reproduced with Better-xCloud removed
+(logs are xbox.com's own `[GamepadNavigation]`). Live pad dump showed only correct
+single button indices flip; axes 2/3 (right stick) swing from mouse = dashboard
+scroll (expected — right stick scrolls the dashboard).
+
+**Cause:** `snapshot()` in `src/core/gamepad-state.ts` reused/mutated ONE cached
+Gamepad + buttons + button objects across every `getGamepads()` call (an earlier
+"Bug 5 perf" optimization). xCloud's `GamepadNavigation` edge-detects a press by
+caching the previous poll's button objects and comparing
+`cur.buttons[i].pressed && !prev.buttons[i].pressed`. With reuse, `cur` and `prev`
+alias the same objects → `x && !x` → edge never fires → A/select silently dead in
+the UI. Legacy allocated fresh objects per call (W3C contract), so it worked.
+
+**Fix:** `snapshot()` now allocates a fresh Gamepad/buttons/button-wrappers/axes
+graph every call (matches legacy + real browsers). Per-frame GC of a few small
+objects is negligible vs correct edge detection. Tests flipped: the old
+`expect(a).toBe(b)` reuse assertions replaced with fresh-snapshot + press-edge
+regression guards (gamepad-state + gamepad-api). Temp keydown diag removed.
