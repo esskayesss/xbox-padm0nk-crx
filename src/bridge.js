@@ -2,7 +2,17 @@
 // Has chrome.* APIs; relays stored config into the MAIN-world inject.js.
 (() => {
 	function post(config) {
-		window.postMessage({ __padm0nk: "config", config: config || {} }, "*");
+		window.postMessage(
+			{
+				__padm0nk: "config",
+				config: config || {},
+				controllerUrl:
+					chrome.runtime?.getURL?.("assets/xbox-controller.svg") || "",
+				iconUrl: chrome.runtime?.getURL?.("icons/padm0nk.png") || "",
+				bindIconBase: chrome.runtime?.getURL?.("assets/bind-icons/") || "",
+			},
+			"*",
+		);
 	}
 
 	// initial load: local is the fast/live store; sync is fallback for old installs.

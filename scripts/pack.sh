@@ -12,6 +12,7 @@ mkdir -p dist
 # Runtime files only — exclude docs, source PNG, git, scripts, dist, dotfiles.
 zip -r -q "$OUT" \
 	manifest.json \
+	assets \
 	src \
 	popup \
 	options \

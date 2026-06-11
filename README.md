@@ -41,7 +41,7 @@ If tester sees pad and inputs move, xCloud should see same controller layer.
 2. Start a game.
 3. Click game video to lock mouse for aim.
 4. Press `F8` to toggle padm0nk if you need real-controller control back.
-5. Press `F9` while game page has focus to show current keybinds overlay.
+5. Press `F9` while game page has focus to show the visual controller binds overlay.
 6. Tune settings from extension popup.
 
 Shooter starter settings:

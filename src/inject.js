@@ -236,6 +236,7 @@
 			window.dispatchEvent(ev);
 		}
 		hud();
+		renderHelp();
 	}
 
 	function fireDisconnect() {
@@ -294,6 +295,8 @@
 
 	function onMouseButton(e, down) {
 		if (!config.enabled) return;
+		const path = typeof e.composedPath === "function" ? e.composedPath() : [];
+		if (path.includes(hudEl) || path.includes(helpEl)) return;
 		const id = "Mouse" + e.button;
 		if (config.lockPointerOnClick && down && !pointerLocked) {
 			const el = document.documentElement;
@@ -447,21 +450,39 @@
 	// ---- HUD + help overlay ----
 	let hudEl = null;
 	let helpEl = null;
+	let controllerUrl = "";
+	let iconUrl = "";
+	let bindIconBase = "";
 	function hud() {
 		if (!document.body) return;
+		injectHelpFont();
 		if (!hudEl) {
 			hudEl = document.createElement("div");
 			hudEl.style.cssText =
-				"position:fixed;left:10px;bottom:10px;z-index:2147483647;font:12px/1.4 ui-monospace,monospace;" +
-				"background:rgba(16,16,20,.82);color:#9fef7f;padding:6px 9px;border-radius:7px;" +
-				"pointer-events:none;white-space:pre;backdrop-filter:blur(4px);border:1px solid rgba(159,239,127,.25)";
+				"position:fixed;left:12px;bottom:12px;z-index:2147483647;" +
+				"pointer-events:auto;user-select:none;" +
+				"font:600 13px/1.25 'Padm0nk Bahnschrift','Bahnschrift Semibold',Bahnschrift,'Segoe UI',SegoeUI,'Helvetica Neue',Helvetica,Arial,sans-serif;";
+			hudEl.addEventListener("pointerdown", (e) => e.stopPropagation(), true);
+			hudEl.addEventListener("mousedown", (e) => e.stopPropagation(), true);
+			hudEl.addEventListener("mouseup", (e) => e.stopPropagation(), true);
+			hudEl.addEventListener("click", (e) => e.stopPropagation(), true);
 			document.body.appendChild(hudEl);
 		}
-		hudEl.style.color = config.enabled ? "#9fef7f" : "#888";
-		hudEl.textContent =
-			`padm0nk ${config.enabled ? "ON" : "OFF"}  ·  aim ${pointerLocked ? "LOCKED" : "click to lock"}\n` +
-			`${comboLabel(currentToggleCombo())} toggle · ${comboLabel(currentHelpCombo())} binds · Esc release mouse`;
+		const stateClass = config.enabled ? "is-on" : "is-off";
+		const lockText = pointerLocked ? "Aim locked" : "Click game to lock aim";
+		hudEl.className = `padm0nk-hud ${stateClass}`;
+		hudEl.innerHTML = `
+			<div class="padm0nk-hud-status">
+				${brandIcon("padm0nk-hud-icon")}
+				<div class="padm0nk-hud-state">${config.enabled ? "ON" : "OFF"}</div>
+			</div>
+			<div class="padm0nk-hud-copy">
+				<div class="padm0nk-hud-line"><b>${comboLabel(currentToggleCombo())}</b><span>toggle</span></div>
+				<div class="padm0nk-hud-line"><b>${comboLabel(currentHelpCombo())}</b><span>binds</span></div>
+				<div class="padm0nk-hud-line muted"><b>Esc</b><span>${lockText}</span></div>
+			</div>`;
 	}
+
 
 	function prettyInput(id) {
 		if (id === "Mouse0") return "Left Click";
@@ -500,37 +521,171 @@
 		);
 	}
 
-	function helpLine(label, icon, action) {
-		return `${icon}  ${label.padEnd(13)} ${inputsForAction(action)}`;
+	function bindingText(action) {
+		const text = inputsForAction(action);
+		return text === "—" ? "UNMAPPED" : text;
 	}
 
-	function helpText() {
-		return [
-			"🎮 padm0nk bindings",
-			"────────────────────────────────",
-			`🕹️  Move          ${inputsForAction({ t: "a", a: 1, v: -1 })}/${inputsForAction({ t: "a", a: 0, v: -1 })}/${inputsForAction({ t: "a", a: 1, v: 1 })}/${inputsForAction({ t: "a", a: 0, v: 1 })}  (W/A/S/D style)`,
-			"🎯  Aim           Mouse movement (pointer locked)",
-			helpLine("A", "🟢", { t: "b", i: 0 }),
-			helpLine("B", "🔴", { t: "b", i: 1 }),
-			helpLine("X", "🔵", { t: "b", i: 2 }),
-			helpLine("Y", "🟡", { t: "b", i: 3 }),
-			helpLine("LB", "◀️", { t: "b", i: 4 }),
-			helpLine("RB", "▶️", { t: "b", i: 5 }),
-			helpLine("LT", "↙️", { t: "b", i: 6 }),
-			helpLine("RT", "↘️", { t: "b", i: 7 }),
-			helpLine("L3", "🕹️", { t: "b", i: 10 }),
-			helpLine("R3", "🕹️", { t: "b", i: 11 }),
-			helpLine("View", "⧉", { t: "b", i: 8 }),
-			helpLine("Menu", "☰", { t: "b", i: 9 }),
-			helpLine("Guide", "✕", { t: "b", i: 16 }),
-			helpLine("D-pad ↑", "⬆️", { t: "b", i: 12 }),
-			helpLine("D-pad ↓", "⬇️", { t: "b", i: 13 }),
-			helpLine("D-pad ←", "⬅️", { t: "b", i: 14 }),
-			helpLine("D-pad →", "➡️", { t: "b", i: 15 }),
-			"────────────────────────────────",
-			`${comboLabel(currentToggleCombo())} toggle padm0nk`,
-			`${comboLabel(currentHelpCombo())} show/hide this · Esc close`,
-		].join("\n");
+	function injectHelpFont() {
+		if (document.getElementById("padm0nk-help-font")) return;
+		const style = document.createElement("style");
+		style.id = "padm0nk-help-font";
+		style.textContent = `
+@font-face {
+	font-family: "Padm0nk Bahnschrift";
+	font-style: normal;
+	font-weight: 600;
+	font-stretch: normal;
+	src: url("https://assets.play.xbox.com/playxbox/static/media/Bahnschrift.30b0e116.woff") format("woff");
+}
+.padm0nk-help,.padm0nk-help *,.padm0nk-hud,.padm0nk-hud *{box-sizing:border-box}
+.padm0nk-help-header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}.padm0nk-help-brand{display:flex;align-items:center;gap:14px}.padm0nk-help-orb{display:grid;place-items:center;width:48px;height:48px;border-radius:16px;background:linear-gradient(145deg,rgba(16,124,16,.88),rgba(5,36,12,.9));box-shadow:0 0 24px rgba(16,124,16,.56),inset 0 0 18px rgba(255,255,255,.12);overflow:hidden}.padm0nk-help-orb-img{width:38px;height:38px;object-fit:contain;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6))}.is-off .padm0nk-help-orb-img{filter:grayscale(1);opacity:.58}.padm0nk-help-title{font-size:28px;letter-spacing:.02em;text-transform:uppercase}.padm0nk-help-subtitle{margin-top:3px;color:#9fef7f;font-size:13px;text-transform:uppercase}.is-off .padm0nk-help-subtitle{color:#aeb6be}.padm0nk-help-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:260px}.padm0nk-help-legend{padding:9px 11px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.045)}.padm0nk-help-legend-label{display:block;color:#9ba7b4;font-size:11px;text-transform:uppercase}.padm0nk-help-legend-value{display:block;color:#fff;font-size:14px}
+.padm0nk-help-body{display:grid;grid-template-columns:minmax(180px,.75fr) minmax(410px,1.5fr) minmax(180px,.75fr);gap:18px;align-items:stretch}.padm0nk-help-rail{display:grid;align-content:start;gap:9px}.padm0nk-help-rail-title{color:#9fef7f;font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin:1px 0 3px}.padm0nk-help-row{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;min-height:44px;padding:7px 9px;border:1px solid rgba(255,255,255,.09);border-radius:15px;background:rgba(255,255,255,.045)}.padm0nk-help-row-icon{display:grid;place-items:center;width:34px;height:34px}.padm0nk-help-row-icon img{max-width:30px;max-height:30px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}.padm0nk-help-row-label{display:block;color:#9ba7b4;font-size:10px;letter-spacing:.09em;text-transform:uppercase}.padm0nk-help-row-key{display:block;color:#fff;font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.padm0nk-help-row.dpad-row .padm0nk-help-row-key{font-size:13px}.padm0nk-help-center{min-width:0;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:22px;background:radial-gradient(circle at 50% 18%,rgba(16,124,16,.22),transparent 42%),rgba(255,255,255,.035)}.padm0nk-help-pad-map{position:relative;aspect-ratio:744/500;width:100%;border-radius:18px;overflow:hidden;background:radial-gradient(circle at 50% 42%,rgba(16,124,16,.25),transparent 48%)}.padm0nk-help-system-row{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:8px;padding:7px;border:1px solid rgba(159,239,127,.18);border-radius:16px;background:rgba(5,9,12,.72);backdrop-filter:blur(10px);box-shadow:0 12px 28px rgba(0,0,0,.34)}.padm0nk-help-system-chip{display:grid;grid-template-columns:24px auto;align-items:center;gap:7px;min-width:94px;padding:5px 8px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:rgba(255,255,255,.045)}.padm0nk-help-system-chip img{width:22px;height:22px;object-fit:contain}.padm0nk-help-system-chip span{display:block;color:#9ba7b4;font-size:9px;letter-spacing:.09em;text-transform:uppercase}.padm0nk-help-system-chip b{display:block;color:#fff;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.padm0nk-help-controller-art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 18px 28px rgba(0,0,0,.55)) drop-shadow(0 0 18px rgba(16,124,16,.24))}.padm0nk-help-aim{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:10px 12px;border-radius:14px;background:rgba(16,124,16,.18);border:1px solid rgba(135,255,93,.19)}.padm0nk-help-aim-label{color:#9fef7f;text-transform:uppercase;font-size:12px}.padm0nk-help-aim-value{color:#fff;text-align:right}
+.padm0nk-hud{display:inline-grid;grid-template-columns:48px auto;align-items:center;column-gap:9px;min-width:218px;max-width:min(320px,calc(100vw - 24px));padding:7px 11px 7px 8px;border:1px solid rgba(135,255,93,.34);border-radius:20px;background:linear-gradient(135deg,rgba(15,19,22,.94),rgba(5,8,10,.94));box-shadow:0 14px 40px rgba(0,0,0,.45),0 0 26px rgba(16,124,16,.16);backdrop-filter:blur(14px);color:#fff}.padm0nk-hud-status{display:grid;justify-items:center;gap:2px;min-width:48px}.padm0nk-hud-icon{width:34px;height:34px;border-radius:12px;object-fit:contain;padding:4px;background:linear-gradient(145deg,rgba(16,124,16,.78),rgba(4,34,10,.88));box-shadow:0 0 18px rgba(16,124,16,.55),inset 0 0 12px rgba(255,255,255,.11);filter:drop-shadow(0 1px 1px rgba(0,0,0,.7))}.padm0nk-hud-state{font-size:10px;letter-spacing:.14em;color:#9fef7f}.padm0nk-hud-copy{display:grid;gap:2px;min-width:0}.padm0nk-hud-line{display:grid;grid-template-columns:28px 1fr;gap:5px;align-items:center}.padm0nk-hud-line b{justify-self:start;width:28px;color:#9fef7f;font-size:12px;text-align:left}.padm0nk-hud-line span{color:#e8f1ea;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.padm0nk-hud-line.muted span,.padm0nk-hud-line.muted b{color:#9ba7b4}.padm0nk-hud.is-off{border-color:rgba(160,170,180,.28);box-shadow:0 14px 40px rgba(0,0,0,.45)}.padm0nk-hud.is-off .padm0nk-hud-icon{background:#3a3f46;box-shadow:inset 0 0 12px rgba(255,255,255,.08);filter:grayscale(1);opacity:.58}.padm0nk-hud.is-off .padm0nk-hud-state{color:#aeb6be}
+@media (max-width:900px){.padm0nk-help-header{align-items:flex-start;flex-direction:column}.padm0nk-help-controls{width:100%;grid-template-columns:1fr}.padm0nk-help-body{grid-template-columns:1fr}.padm0nk-help-center{order:-1}.padm0nk-help-rail{grid-template-columns:1fr 1fr}.padm0nk-help-rail-title{grid-column:1/-1}}
+`;
+		(document.head || document.documentElement).appendChild(style);
+	}
+
+	function makeEl(tag, className, text) {
+		const el = document.createElement(tag);
+		if (className) el.className = className;
+		if (text != null) el.textContent = text;
+		return el;
+	}
+
+	function addLegend(parent, label, value) {
+		const item = makeEl("div", "padm0nk-help-legend");
+		item.append(makeEl("span", "padm0nk-help-legend-label", label));
+		item.append(makeEl("span", "padm0nk-help-legend-value", value));
+		parent.appendChild(item);
+	}
+
+	function htmlEscape(value) {
+		return String(value)
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;");
+	}
+
+	function htmlBind(action) {
+		return htmlEscape(bindingText(action));
+	}
+
+	function brandIcon(className) {
+		const src = iconUrl ? htmlEscape(iconUrl) : "";
+		return src
+			? `<img class="${className}" src="${src}" alt="padm0nk" />`
+			: `<span class="${className} is-empty" aria-label="padm0nk"></span>`;
+	}
+
+	function bindIcon(file, label) {
+		const src = bindIconBase ? htmlEscape(bindIconBase + file) : "";
+		return src ? `<img src="${src}" alt="${htmlEscape(label)}" />` : htmlEscape(label);
+	}
+
+	function bindRow(icon, label, action, className = "") {
+		return `
+			<div class="padm0nk-help-row ${className}">
+				<div class="padm0nk-help-row-icon">${bindIcon(icon, label)}</div>
+				<div>
+					<span class="padm0nk-help-row-label">${htmlEscape(label)}</span>
+					<span class="padm0nk-help-row-key">${htmlBind(action)}</span>
+				</div>
+			</div>`;
+	}
+
+	function bindInfoRow(icon, label, value, className = "") {
+		return `
+			<div class="padm0nk-help-row ${className}">
+				<div class="padm0nk-help-row-icon">${bindIcon(icon, label)}</div>
+				<div>
+					<span class="padm0nk-help-row-label">${htmlEscape(label)}</span>
+					<span class="padm0nk-help-row-key">${htmlEscape(value)}</span>
+				</div>
+			</div>`;
+	}
+
+	function systemChip(icon, label, action) {
+		return `
+			<div class="padm0nk-help-system-chip">
+				${bindIcon(icon, label)}
+				<div><span>${htmlEscape(label)}</span><b>${htmlBind(action)}</b></div>
+			</div>`;
+	}
+
+	function controllerArt() {
+		const art = htmlEscape(
+			controllerUrl ||
+				"https://upload.wikimedia.org/wikipedia/commons/1/1b/Xbox_Controller.svg",
+		);
+		return `
+			<div class="padm0nk-help-pad-map" aria-label="Xbox controller">
+				<img class="padm0nk-help-controller-art" src="${art}" alt="Xbox controller" />
+				<div class="padm0nk-help-system-row">
+					${systemChip("view.svg", "View", { t: "b", i: 8 })}
+					${systemChip("guide.svg", "Guide", { t: "b", i: 16 })}
+					${systemChip("menu.svg", "Menu", { t: "b", i: 9 })}
+				</div>
+			</div>`;
+	}
+
+	function renderHelp() {
+		if (!helpEl) return;
+		helpEl.replaceChildren();
+		helpEl.className = `padm0nk-help ${config.enabled ? "is-on" : "is-off"}`;
+
+		const header = makeEl("div", "padm0nk-help-header");
+		const brand = makeEl("div", "padm0nk-help-brand");
+		const orb = makeEl("span", "padm0nk-help-orb");
+		orb.innerHTML = brandIcon("padm0nk-help-orb-img");
+		const copy = makeEl("div");
+		copy.append(makeEl("div", "padm0nk-help-title", "padm0nk binds"));
+		copy.append(makeEl("div", "padm0nk-help-subtitle", config.enabled ? "Virtual Xbox pad online" : "padm0nk disabled"));
+		brand.append(orb, copy);
+		header.append(brand);
+
+		const controls = makeEl("div", "padm0nk-help-controls");
+		addLegend(controls, "Toggle", comboLabel(currentToggleCombo()));
+		addLegend(controls, "Close", `${comboLabel(currentHelpCombo())} / Esc`);
+		header.append(controls);
+		helpEl.appendChild(header);
+
+		const body = makeEl("div", "padm0nk-help-body");
+		const left = makeEl("div", "padm0nk-help-rail");
+		left.innerHTML = `
+			<div class="padm0nk-help-rail-title">Left side</div>
+			${bindRow("left-trigger.svg", "LT", { t: "b", i: 6 })}
+			${bindRow("left-bumper.svg", "LB", { t: "b", i: 4 })}
+			${bindRow("left-stick.svg", "Left stick", { t: "a", a: 1, v: -1 })}
+			${bindRow("left-stick-press.svg", "L3", { t: "b", i: 10 })}
+			${bindRow("dpad-up.svg", "D-pad up", { t: "b", i: 12 }, "dpad-row")}
+			${bindRow("dpad-down.svg", "D-pad down", { t: "b", i: 13 }, "dpad-row")}
+			${bindRow("dpad-left.svg", "D-pad left", { t: "b", i: 14 }, "dpad-row")}
+			${bindRow("dpad-right.svg", "D-pad right", { t: "b", i: 15 }, "dpad-row")}`;
+
+		const center = makeEl("div", "padm0nk-help-center");
+		center.innerHTML = controllerArt();
+		const aim = makeEl("div", "padm0nk-help-aim");
+		aim.append(makeEl("span", "padm0nk-help-aim-label", "Right stick aim"));
+		aim.append(makeEl("span", "padm0nk-help-aim-value", "Mouse movement while pointer locked"));
+		center.appendChild(aim);
+
+		const right = makeEl("div", "padm0nk-help-rail");
+		right.innerHTML = `
+			<div class="padm0nk-help-rail-title">Right side</div>
+			${bindRow("right-trigger.svg", "RT", { t: "b", i: 7 })}
+			${bindRow("right-bumper.svg", "RB", { t: "b", i: 5 })}
+			${bindInfoRow("right-stick.svg", "Right stick", "Mouse move")}
+			${bindRow("right-stick-press.svg", "R3", { t: "b", i: 11 })}
+			${bindRow("a.svg", "A", { t: "b", i: 0 })}
+			${bindRow("b.svg", "B", { t: "b", i: 1 })}
+			${bindRow("x.svg", "X", { t: "b", i: 2 })}
+			${bindRow("y.svg", "Y", { t: "b", i: 3 })}`;
+
+		body.append(left, center, right);
+		helpEl.appendChild(body);
 	}
 
 	function closeHelp() {
@@ -545,15 +700,18 @@
 			return;
 		}
 		if (!document.body) return;
+		injectHelpFont();
 		helpEl = document.createElement("div");
 		helpEl.style.cssText =
 			"position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147483647;" +
-			"max-width:min(720px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;" +
-			"white-space:pre;font:14px/1.45 ui-monospace,monospace;color:#f2f7ff;background:rgba(12,14,22,.94);" +
-			"border:1px solid rgba(159,239,127,.35);border-radius:14px;padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.45);" +
-			"backdrop-filter:blur(10px);pointer-events:none";
-		helpEl.textContent = helpText();
+			"width:min(1040px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;" +
+			"box-sizing:border-box;color:#f4fff2;background:linear-gradient(145deg,rgba(16,20,22,.96),rgba(8,10,13,.96));" +
+			"border:1px solid rgba(135,255,93,.38);border-radius:24px;padding:22px;box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 42px rgba(16,124,16,.18);" +
+			"backdrop-filter:blur(18px);pointer-events:none;font:600 15px/1.35 'Padm0nk Bahnschrift','Bahnschrift Semibold',Bahnschrift,'Segoe UI',SegoeUI,'Helvetica Neue',Helvetica,Arial,sans-serif;" +
+			"letter-spacing:.01em";
+
 		document.body.appendChild(helpEl);
+		renderHelp();
 	}
 
 	function toggle() {
@@ -569,6 +727,7 @@
 			if (document.pointerLockElement) document.exitPointerLock();
 		}
 		hud();
+		renderHelp();
 	}
 
 	// ---- Config bridge (from isolated content script / popup) ----
@@ -576,9 +735,13 @@
 		if (e.source !== window) return;
 		const d = e.data;
 		if (!d || d.__padm0nk !== "config") return;
+		if (d.controllerUrl) controllerUrl = d.controllerUrl;
+		if (d.iconUrl) iconUrl = d.iconUrl;
+		if (d.bindIconBase) bindIconBase = d.bindIconBase;
 		config = Object.assign(structuredClone(DEFAULT_CONFIG), d.config || {});
 		if (d.config && d.config.bindings) config.bindings = d.config.bindings;
 		hud();
+		renderHelp();
 	});
 
 	// build HUD once DOM exists

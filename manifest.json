@@ -25,6 +25,21 @@
       "128": "icons/icon-128.png"
     }
   },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/xbox-controller.svg",
+        "assets/bind-icons/*.svg",
+        "icons/padm0nk.png"
+      ],
+      "matches": [
+        "https://www.xbox.com/*",
+        "https://www.gamepad-tester.com/*",
+        "https://gamepad-tester.com/*",
+        "https://hardwaretester.com/*"
+      ]
+    }
+  ],
   "content_scripts": [
     {
       "matches": [
