@@ -13,6 +13,9 @@ export function createGamepadState(): GamepadState {
 		held: new Set<string>(),
 		mouseDX: 0,
 		mouseDY: 0,
+		velX: 0,
+		velY: 0,
+		lastAimT: 0,
 	};
 }
 
@@ -26,6 +29,10 @@ export function clearInputs(state: GamepadState): void {
 	state.held.clear();
 	state.mouseDX = 0;
 	state.mouseDY = 0;
+	// drop the aim integrator too, so a stuck/decaying stick can't survive a
+	// blur/toggle-off and bleed into the next session.
+	state.velX = 0;
+	state.velY = 0;
 }
 
 /**

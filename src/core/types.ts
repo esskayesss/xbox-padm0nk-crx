@@ -80,6 +80,12 @@ export interface GamepadState {
 	mouseDX: number;
 	/** Input accumulator: pending vertical mouse delta (pixels) since last tick. */
 	mouseDY: number;
+	/** Aim integrator: smoothed mouse velocity (px/s), X. Internal to the mapper. */
+	velX: number;
+	/** Aim integrator: smoothed mouse velocity (px/s), Y. Internal to the mapper. */
+	velY: number;
+	/** Aim integrator: timestamp of the last mapper tick (ms); 0 before first tick. */
+	lastAimT: number;
 }
 
 /** A single remappable control in the controller-actions registry. */

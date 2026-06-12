@@ -50,33 +50,78 @@ describe('mapper.step — right stick (mouse)', () => {
 	it('invertY flips the ryTarget sign', () => {
 		const a = createGamepadState();
 		a.mouseDY = 100;
-		step(cfg({ smoothing: 0, invertY: false }), a, 1);
+		step(cfg({ smoothing: 0, invertY: false }), a, 16);
 		const normal = a.axes[3];
 
 		const b = createGamepadState();
 		b.mouseDY = 100;
-		step(cfg({ smoothing: 0, invertY: true }), b, 1);
+		step(cfg({ smoothing: 0, invertY: true }), b, 16);
 		const inverted = b.axes[3];
 
 		expect(Math.sign(normal)).toBe(-Math.sign(inverted));
 		expect(normal).toBeCloseTo(-inverted, 6);
 	});
 
-	it('smoothing interpolates toward the target over successive steps', () => {
+	it('ramps up while the mouse moves, then fully recenters after it stops (no coast)', () => {
 		const s = createGamepadState();
-		const c = cfg({ smoothing: 0.5 });
-		// constant rightward mouse delta each frame
-		const vals: number[] = [];
-		for (let i = 0; i < 4; i++) {
-			s.mouseDX = 100;
-			step(c, s, i);
-			vals.push(s.axes[2]);
+		const c = cfg({ smoothing: 0.25 });
+		const dt = 1000 / 180; // 180fps
+		let t = 0;
+		const up: number[] = [];
+		for (let i = 0; i < 20; i++) {
+			s.mouseDX = 8;
+			t += dt;
+			step(c, s, t);
+			up.push(s.axes[2]);
 		}
-		// monotonically increasing toward a positive target, not instant
-		expect(vals[0]).toBeGreaterThan(0);
-		expect(vals[1]).toBeGreaterThan(vals[0]);
-		expect(vals[2]).toBeGreaterThan(vals[1]);
-		expect(vals[3]).toBeGreaterThan(vals[2]);
+		expect(up[0]).toBeGreaterThan(0);
+		expect(up[up.length - 1]).toBeGreaterThan(up[0]); // velocity EMA ramped up
+		// mouse stops: the stick must decay back to exactly 0, not coast forever
+		for (let i = 0; i < 120; i++) {
+			s.mouseDX = 0;
+			t += dt;
+			step(c, s, t);
+		}
+		expect(s.axes[2]).toBe(0);
+		expect(s.velX).toBe(0);
+	});
+
+	it('does not blink to 0 on a single event-less frame mid-motion', () => {
+		const s = createGamepadState();
+		const c = cfg({ smoothing: 0.25 });
+		const dt = 1000 / 180;
+		let t = 0;
+		for (let i = 0; i < 10; i++) {
+			s.mouseDX = 8;
+			t += dt;
+			step(c, s, t);
+		}
+		const moving = s.axes[2];
+		expect(moving).toBeGreaterThan(0.1);
+		// one frame where no mousemove arrived (180fps outruns the mouse event rate)
+		s.mouseDX = 0;
+		t += dt;
+		step(c, s, t);
+		// barely dips — must NOT collapse toward origin (the old per-frame bug)
+		expect(s.axes[2]).toBeGreaterThan(moving * 0.8);
+	});
+
+	it('framerate-independent: same hand speed yields ~same deflection at 60 vs 180fps', () => {
+		const run = (dtMs: number, pxPerFrame: number): number => {
+			const s = createGamepadState();
+			const c = cfg({ smoothing: 0.25 });
+			let t = 0;
+			for (let i = 0; i < 80; i++) {
+				s.mouseDX = pxPerFrame;
+				t += dtMs;
+				step(c, s, t);
+			}
+			return s.axes[2];
+		};
+		// 24px/60fps and 8px/180fps are both 1440 px/s of hand motion
+		const at60 = run(1000 / 60, 24);
+		const at180 = run(1000 / 180, 8);
+		expect(at180).toBeCloseTo(at60, 2);
 	});
 
 	it('deadzone snap: residue < 0.005 collapses to 0', () => {
@@ -89,31 +134,13 @@ describe('mapper.step — right stick (mouse)', () => {
 		expect(s.axes[3]).toBe(0);
 	});
 
-	it('consumes mouse delta within full deflection (no leftover for normal aim)', () => {
+	it('consumes (zeroes) the pending mouse delta each tick', () => {
 		const s = createGamepadState();
-		// 50px * 0.018 sens = 0.9 deflection (< 1) → fully consumed, nothing carried
 		s.mouseDX = 50;
 		s.mouseDY = -50;
 		step(cfg(), s, 1);
 		expect(s.mouseDX).toBe(0);
 		expect(s.mouseDY).toBe(0);
-	});
-
-	it('carries over delta beyond full deflection so fast flicks are not clipped', () => {
-		const s = createGamepadState();
-		const c = cfg({ smoothing: 0 });
-		// a fast flick: 200px * 0.018 = 3.6 deflection → stick pins at max (1) and the
-		// overflow stays queued so the next frames keep delivering the motion.
-		s.mouseDX = 200;
-		step(c, s, 1);
-		expect(s.axes[2]).toBeCloseTo(1, 6); // pinned at full deflection
-		expect(s.mouseDX).toBeGreaterThan(0); // overflow carried, not discarded
-		// overflow = (3.6 - 1) / 0.018 px
-		expect(s.mouseDX).toBeCloseTo((3.6 - 1) / 0.018, 4);
-
-		// draining with no new input keeps the stick pinned until consumed
-		step(c, s, 2);
-		expect(s.axes[2]).toBeCloseTo(1, 6);
 	});
 
 	it('sets timestamp to now', () => {

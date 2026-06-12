@@ -27,8 +27,8 @@ export function aimResponse(raw: number, aimMin = 0.12, aimCurve = 0.75): number
  * Advance the virtual pad by one frame. Mutates `state` in place:
  *   - buttons: 0/1 from held button bindings
  *   - axes[0,1] (left stick): summed held axis bindings, radial-clamped
- *   - axes[2,3] (right stick): mouse delta → aimResponse → smoothed toward target
- *   - mouseDX/mouseDY: consumed (zeroed)
+ *   - axes[2,3] (right stick): mouse velocity → framerate-normalized → aimResponse
+ *   - mouseDX/mouseDY: consumed (zeroed); velX/velY/lastAimT: aim integrator state
  *   - timestamp: set to `now`
  */
 export function step(config: Config, state: GamepadState, now: number): void {
@@ -57,32 +57,55 @@ export function step(config: Config, state: GamepadState, now: number): void {
 	axes[AXIS.LX] = clamp(acc0, -1, 1);
 	axes[AXIS.LY] = clamp(acc1, -1, 1);
 
-	// Right stick from mouse delta, WITH CARRY-OVER.
+	// Right stick from mouse VELOCITY (framerate-independent).
 	//
-	// The bug: mapping instantaneous mouse delta to stick POSITION caps at full
-	// deflection (1.0). A fast flick produces `mouseDX * sensitivity` well above 1,
-	// which clamps to 1 — and because we then zeroed the delta, every pixel beyond
-	// what fit under full deflection was THROWN AWAY. Result: fast flicks "speed up
-	// then plateau" and under-rotate, losing the tail of the motion.
+	// The legacy/early model mapped each frame's raw mouse delta straight to stick
+	// deflection. Two defects fell out of that on high-refresh displays:
+	//   1. Framerate dependence — at 180Hz a frame carries ~1/3 the pixels of a
+	//      60Hz frame, so the same hand motion produced a weaker, jitterier stick.
+	//   2. Per-frame collapse — any frame without a `mousemove` event (180fps > the
+	//      mouse's event rate) zeroed the target, so the stick blinked back toward
+	//      origin every few frames (visible on a gamepad tester; choppy in game).
+	// Smoothing only masked #2, and trading it away for snappiness re-exposed it.
 	//
-	// Fix: only consume the portion of the delta that fits under full deflection;
-	// carry the remainder into the next frame. The stick stays pinned at max across
-	// frames until the whole flick is delivered — full rotation, just rate-limited
-	// by the stick ceiling (which the game enforces regardless). Within [-1,1] the
-	// delta is consumed completely (excess 0), so slow/normal aim is unchanged.
+	// Instead: estimate mouse velocity (px/s), smooth it with a framerate-
+	// independent time-constant EMA, then normalize back to a 60fps-equivalent
+	// per-frame delta before shaping. Result: identical feel at any refresh rate,
+	// event-less frames barely dent velocity (no blink), and the stick recenters a
+	// few time-constants after the mouse stops (no runaway coast).
 	const sens = config.sensitivity;
-	const rawX = state.mouseDX * sens;
-	const rawY = state.mouseDY * sens;
-	const rxTarget = aimResponse(rawX, config.aimMin, config.aimCurve);
-	const ryTarget = aimResponse(rawY * (config.invertY ? -1 : 1), config.aimMin, config.aimCurve);
-	// carry the overflow beyond full deflection (in mouse-pixel units) to next frame
-	state.mouseDX = sens !== 0 ? (rawX - clamp(rawX, -1, 1)) / sens : 0;
-	state.mouseDY = sens !== 0 ? (rawY - clamp(rawY, -1, 1)) / sens : 0;
+	const dtMs = state.lastAimT > 0 ? clamp(now - state.lastAimT, 1, 50) : 1000 / 60;
+	state.lastAimT = now;
+	const dtS = dtMs / 1000;
 
-	const s = clamp(config.smoothing, 0, 0.95);
-	let nx = axes[AXIS.RX] * s + rxTarget * (1 - s);
-	let ny = axes[AXIS.RY] * s + ryTarget * (1 - s);
-	// snap tiny residue to zero so the stick truly recenters
+	// instantaneous velocity this frame (px/s); a frame with no mouse event => 0
+	const instVx = state.mouseDX / dtS;
+	const instVy = state.mouseDY / dtS;
+	state.mouseDX = 0;
+	state.mouseDY = 0;
+
+	// EMA toward instantaneous velocity. `smoothing` maps to the response time
+	// constant: 0 => ~25ms (snappy), 0.25 (default) => ~85ms, up to ~253ms. The
+	// dt/tau exponent makes it framerate-independent, so one event-less frame only
+	// nudges the velocity instead of collapsing it.
+	const tauMs = 25 + clamp(config.smoothing, 0, 0.95) * 240;
+	const a = 1 - Math.exp(-dtMs / tauMs);
+	state.velX += a * (instVx - state.velX);
+	state.velY += a * (instVy - state.velY);
+
+	// normalize velocity to px-per-60fps-frame so `sensitivity` keeps its meaning
+	// (calibrated against 60fps), then shape into stick deflection.
+	const rawX = (state.velX / 60) * sens;
+	const rawY = (state.velY / 60) * sens * (config.invertY ? -1 : 1);
+
+	// velocity deadzone: below this the decaying EMA is treated as a dead stop so
+	// the aimResponse floor (aimMin) can't pin the stick at a residual deflection.
+	const DEAD = 0.02;
+	let nx = Math.abs(rawX) < DEAD ? 0 : aimResponse(rawX, config.aimMin, config.aimCurve);
+	let ny = Math.abs(rawY) < DEAD ? 0 : aimResponse(rawY, config.aimMin, config.aimCurve);
+	if (nx === 0) state.velX = 0;
+	if (ny === 0) state.velY = 0;
+	// snap any tiny residue so the stick truly recenters
 	if (Math.abs(nx) < 0.005) nx = 0;
 	if (Math.abs(ny) < 0.005) ny = 0;
 	axes[AXIS.RX] = nx;
