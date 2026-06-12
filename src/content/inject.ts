@@ -169,6 +169,10 @@ function main(): void {
 		if (!config.bindings[id]) return;
 		if (down) state.held.add(id);
 		else state.held.delete(id);
+		// Reflect edge-triggered inputs immediately, not only on the next RAF. xCloud
+		// can poll getGamepads around UI select handling; native pads expose the new
+		// button state immediately, so keep the virtual snapshot in lockstep.
+		step(config, state, performance.now());
 		if (down) fireConnect(); // first mapped down brings the pad online
 	}
 	function toggle(): void {

@@ -29,11 +29,13 @@ export function aimResponse(raw: number, aimMin = 0.12, aimCurve = 0.75): number
  *   - axes[0,1] (left stick): summed held axis bindings, radial-clamped
  *   - axes[2,3] (right stick): mouse velocity → framerate-normalized → aimResponse
  *   - mouseDX/mouseDY: consumed (zeroed); velX/velY/lastAimT: aim integrator state
- *   - timestamp: set to `now`
+ *   - timestamp: set to `now` only when visible button/axis output changes
  */
 export function step(config: Config, state: GamepadState, now: number): void {
 	const buttons = state.buttons;
 	const axes = state.axes;
+	const prevButtons = buttons.slice();
+	const prevAxes = Array.from(axes);
 
 	// reset buttons; accumulate left-stick deflection into locals
 	buttons.fill(0);
@@ -128,5 +130,20 @@ export function step(config: Config, state: GamepadState, now: number): void {
 	axes[AXIS.RX] = nx;
 	axes[AXIS.RY] = ny;
 
-	state.timestamp = now;
+	let changed = false;
+	for (let i = 0; i < buttons.length; i++) {
+		if (buttons[i] !== prevButtons[i]) {
+			changed = true;
+			break;
+		}
+	}
+	if (!changed) {
+		for (let i = 0; i < axes.length; i++) {
+			if (axes[i] !== prevAxes[i]) {
+				changed = true;
+				break;
+			}
+		}
+	}
+	if (changed) state.timestamp = now;
 }

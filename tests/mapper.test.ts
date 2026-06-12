@@ -190,10 +190,22 @@ describe('mapper.step — right stick (mouse)', () => {
 		expect(s.mouseDY).toBe(0);
 	});
 
-	it('sets timestamp to now', () => {
+	it('leaves timestamp alone when output is unchanged', () => {
 		const s = createGamepadState();
 		step(cfg(), s, 1234);
+		expect(s.timestamp).toBe(0);
+	});
+
+	it('sets timestamp to now when output changes', () => {
+		const s = createGamepadState();
+		s.held.add('Space');
+		step(cfg(), s, 1234);
 		expect(s.timestamp).toBe(1234);
+		step(cfg(), s, 1250);
+		expect(s.timestamp).toBe(1234);
+		s.held.delete('Space');
+		step(cfg(), s, 1300);
+		expect(s.timestamp).toBe(1300);
 	});
 });
 

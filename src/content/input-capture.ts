@@ -168,6 +168,14 @@ export function installInputCapture(ctrl: CaptureController): () => void {
 		// This runs FIRST so even capture-phase listeners respect the UI surfaces.
 		if (ctrl.isUiEvent(e)) return;
 
+		const id = 'Mouse' + e.button;
+		const mapped = ctrl.isBound(id);
+
+		// Only raw hardware mouse buttons should become virtual controller buttons.
+		// xCloud/browser can synthesize untrusted Mouse0 events during keyboard/gamepad
+		// activation; mapping those polluted A/select with RT and moved focus.
+		if (!e.isTrusted) return;
+
 		const config = ctrl.getConfig();
 		if (!config.enabled) return;
 
@@ -177,8 +185,7 @@ export function installInputCapture(ctrl: CaptureController): () => void {
 			ctrl.requestPointerLockIfEnabled();
 		}
 
-		const id = 'Mouse' + e.button;
-		if (ctrl.isBound(id)) {
+		if (mapped) {
 			ctrl.apply(id, down);
 			swallow(e);
 		}
