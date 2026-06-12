@@ -52,14 +52,31 @@ If tester sees pad and inputs move, xCloud should see same controller layer.
 
 The toggle and show-binds shortcuts are configurable combos (defaults `F8` / `F9`). Change them in Advanced remapping.
 
-Shooter starter settings:
+## Settings
+
+Tune these from the extension popup (or Advanced remapping). All values are clamped to the ranges below.
+
+| Setting | Default | Range | What it does |
+| --- | --- | --- | --- |
+| **Sensitivity** | `0.018` | `0.002–0.05` | How much mouse movement maps to right-stick deflection. Higher = the stick reaches full throw (max in-game turn rate) with less hand motion. This is the main "how fast do I aim" dial. |
+| **Smoothing** | `0.25` | `0–0.95` | Response time-constant for aim. `0` ≈ 25 ms (instant, snappiest, can feel twitchy on a cheap mouse); higher values lengthen it (`0.25` ≈ 85 ms, up to ~250 ms) for buttery-smooth-but-laggier motion. It damps the per-frame jitter from mouse polling — it does **not** add a turn-speed cap. |
+| **Aim min** | `0.12` | `0–0.5` | Minimum non-zero stick output. Many games swallow tiny stick deflections inside a hidden deadzone, so slow mouse movement would do nothing. This floor lifts any real motion above that deadzone so fine aim registers. Raise it if slow aim feels dead; lower it if the crosshair creeps on its own. |
+| **Aim curve** | `0.75` | `0.25–2` | Response curve exponent. `< 1` boosts fine/low-speed motion (precise tracking) while still reaching full throw on big moves; `1` is linear; `> 1` softens the start for a slower, more deliberate feel. |
+| **Invert Y** | `off` | on/off | Flips vertical aim (mouse up → look down). |
+| **Lock pointer on click** | `on` | on/off | Auto-locks the mouse pointer when you click the game so aim works; `Esc` releases. Turn off if you prefer to lock manually. |
+
+Aim is **framerate-independent** — it's driven by mouse velocity (px/s), so the same Sensitivity/Smoothing feel identical on a 60 Hz, 120 Hz, or 240 Hz display.
+
+> Reminder: a virtual thumbstick has a maximum deflection, and at full throw the **game** sets the turn rate. Sensitivity/Smoothing change how fast you reach and leave that ceiling, but no setting (and no KBM-on-cloud tool) can exceed it — instant mouse-style 180° flicks aren't physically possible through the Gamepad API.
+
+**Shooter starter settings:**
 
 - Sensitivity: `0.018–0.030`
 - Smoothing: `0.10–0.25`
 - Aim min: `0.10–0.18`
 - Aim curve: `0.60–0.85`
 
-In-game, raise look sensitivity and disable aim deadzone when game allows it. Hidden deadzones are final boss here.
+In-game, raise look sensitivity and disable aim deadzone when the game allows it. Hidden deadzones are the final boss here.
 
 ## Default bindings
 
