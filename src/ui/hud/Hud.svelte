@@ -12,8 +12,9 @@
 		toggleCombo: Combo;
 		helpCombo: Combo;
 		enabled: boolean;
+		inGame: boolean;
 	}
-	let { iconUrl, toggleCombo, helpCombo, enabled }: Props = $props();
+	let { iconUrl, toggleCombo, helpCombo, enabled, inGame }: Props = $props();
 
 	// Second line of defense (see shadow.ts CLICK-SAFETY): swallow on the dock.
 	const stop = (e: Event) => e.stopPropagation();
@@ -23,7 +24,7 @@
 	class="pad-hud-bg pointer-events-auto fixed bottom-3 left-3 flex min-w-56 max-w-[min(320px,calc(100vw-24px))] select-none items-center gap-2 rounded-sm border p-1.5 backdrop-blur-md transition-opacity duration-200 hover:opacity-100"
 	class:border-pad-accent={enabled}
 	class:border-pad-border={!enabled}
-	class:opacity-20={enabled}
+	class:opacity-20={inGame}
 	onpointerdowncapture={stop}
 	onmousedowncapture={stop}
 	onmouseupcapture={stop}

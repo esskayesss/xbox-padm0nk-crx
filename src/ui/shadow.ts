@@ -75,6 +75,8 @@ export type HudProps = {
 	toggleCombo: Combo;
 	helpCombo: Combo;
 	enabled: boolean;
+	/** True on an active game session (xbox.com /play/launch/...) — fades the HUD. */
+	inGame: boolean;
 };
 
 export type OverlayProps = {
