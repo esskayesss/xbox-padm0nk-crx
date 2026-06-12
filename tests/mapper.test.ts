@@ -124,6 +124,30 @@ describe('mapper.step — right stick (mouse)', () => {
 		expect(at180).toBeCloseTo(at60, 2);
 	});
 
+	it('recenters with a smooth ramp, not a floored plateau (no hard snap)', () => {
+		const s = createGamepadState();
+		const c = cfg({ smoothing: 0.25 });
+		const dt = 1000 / 180;
+		let t = 0;
+		for (let i = 0; i < 30; i++) {
+			s.mouseDX = 20;
+			t += dt;
+			step(c, s, t);
+		}
+		expect(s.axes[2]).toBeGreaterThan(0.12); // strongly deflected while moving
+		const tail: number[] = [];
+		for (let i = 0; i < 120; i++) {
+			s.mouseDX = 0;
+			t += dt;
+			step(c, s, t);
+			tail.push(s.axes[2]);
+		}
+		// once idle, the floor drops so output rides the decaying velocity DOWN through
+		// the sub-aimMin region instead of holding 0.12 then snapping.
+		expect(tail.some((v) => v > 0 && v < 0.12)).toBe(true);
+		expect(tail[tail.length - 1]).toBe(0); // fully settled
+	});
+
 	it('registers small/slow motion instead of deadzoning it (symmetric X and Y)', () => {
 		const dt = 1000 / 180;
 		const run = (axis: 'x' | 'y'): number => {

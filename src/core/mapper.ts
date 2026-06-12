@@ -98,25 +98,35 @@ export function step(config: Config, state: GamepadState, now: number): void {
 	state.velX += a * (instVx - state.velX);
 	state.velY += a * (instVy - state.velY);
 
-	// Recenter on a GENUINE stop, not on small/slow motion. The old approach used a
-	// magnitude deadzone (discard velocity below a threshold) — but that silently
-	// dropped small, slow adjustments, which hit the vertical axis hardest since Y
-	// movements are typically smaller than X. Instead, snap to center only after the
-	// mouse has carried no real input for REST_MS. While moving (even sub-pixel,
-	// even across event-less frames) every motion registers, symmetric on both axes.
-	const REST_MS = 50;
-	if (idleMs > REST_MS) {
-		state.velX = 0;
-		state.velY = 0;
-	}
+	// Recenter cleanly without killing fine motion. The aimMin floor lifts even the
+	// smallest movement above the game's own stick deadzone — essential for fine
+	// adjustments to register — but because ANY nonzero velocity then floors to
+	// aimMin, output can only reach 0 via an explicit cut. A hard idle-snap forced a
+	// trade-off (snap early -> slow creep dies between sparse pixel events; snap late
+	// -> the stick coasts). Resolve it by gating the floor on activity: keep it while
+	// the mouse is moving, drop it once idle so the stick rides the decaying velocity
+	// smoothly to center (proportional ramp, no plateau, no snap artifact).
+	const ACTIVE_MS = 60;
+	const active = idleMs < ACTIVE_MS;
+	const min = active ? config.aimMin : 0;
 
-	// normalize velocity to px-per-60fps-frame so `sensitivity` keeps its meaning
-	// (calibrated against 60fps), then shape into stick deflection. The aimMin floor
-	// inside aimResponse lifts even tiny motion above the game's own stick deadzone.
 	const rawX = (state.velX / 60) * sens;
 	const rawY = (state.velY / 60) * sens * (config.invertY ? -1 : 1);
-	axes[AXIS.RX] = rawX === 0 ? 0 : aimResponse(rawX, config.aimMin, config.aimCurve);
-	axes[AXIS.RY] = rawY === 0 ? 0 : aimResponse(rawY, config.aimMin, config.aimCurve);
+	let nx = rawX === 0 ? 0 : aimResponse(rawX, min, config.aimCurve);
+	let ny = rawY === 0 ? 0 : aimResponse(rawY, min, config.aimCurve);
+	// once idle and decayed to a hair, settle to true rest (kills float residue)
+	if (!active) {
+		if (Math.abs(nx) < 0.02) {
+			nx = 0;
+			state.velX = 0;
+		}
+		if (Math.abs(ny) < 0.02) {
+			ny = 0;
+			state.velY = 0;
+		}
+	}
+	axes[AXIS.RX] = nx;
+	axes[AXIS.RY] = ny;
 
 	state.timestamp = now;
 }
