@@ -16,6 +16,7 @@ export function createGamepadState(): GamepadState {
 		velX: 0,
 		velY: 0,
 		lastAimT: 0,
+		lastMoveT: 0,
 	};
 }
 
@@ -33,6 +34,7 @@ export function clearInputs(state: GamepadState): void {
 	// blur/toggle-off and bleed into the next session.
 	state.velX = 0;
 	state.velY = 0;
+	state.lastMoveT = 0;
 }
 
 /**

@@ -78,6 +78,11 @@ export function step(config: Config, state: GamepadState, now: number): void {
 	state.lastAimT = now;
 	const dtS = dtMs / 1000;
 
+	// note real mouse activity this frame (before we zero the delta) so we can tell
+	// a genuine stop from a momentary event-less frame mid-motion.
+	if (state.mouseDX !== 0 || state.mouseDY !== 0) state.lastMoveT = now;
+	const idleMs = state.lastMoveT > 0 ? now - state.lastMoveT : Infinity;
+
 	// instantaneous velocity this frame (px/s); a frame with no mouse event => 0
 	const instVx = state.mouseDX / dtS;
 	const instVy = state.mouseDY / dtS;
@@ -93,23 +98,25 @@ export function step(config: Config, state: GamepadState, now: number): void {
 	state.velX += a * (instVx - state.velX);
 	state.velY += a * (instVy - state.velY);
 
+	// Recenter on a GENUINE stop, not on small/slow motion. The old approach used a
+	// magnitude deadzone (discard velocity below a threshold) — but that silently
+	// dropped small, slow adjustments, which hit the vertical axis hardest since Y
+	// movements are typically smaller than X. Instead, snap to center only after the
+	// mouse has carried no real input for REST_MS. While moving (even sub-pixel,
+	// even across event-less frames) every motion registers, symmetric on both axes.
+	const REST_MS = 50;
+	if (idleMs > REST_MS) {
+		state.velX = 0;
+		state.velY = 0;
+	}
+
 	// normalize velocity to px-per-60fps-frame so `sensitivity` keeps its meaning
-	// (calibrated against 60fps), then shape into stick deflection.
+	// (calibrated against 60fps), then shape into stick deflection. The aimMin floor
+	// inside aimResponse lifts even tiny motion above the game's own stick deadzone.
 	const rawX = (state.velX / 60) * sens;
 	const rawY = (state.velY / 60) * sens * (config.invertY ? -1 : 1);
-
-	// velocity deadzone: below this the decaying EMA is treated as a dead stop so
-	// the aimResponse floor (aimMin) can't pin the stick at a residual deflection.
-	const DEAD = 0.02;
-	let nx = Math.abs(rawX) < DEAD ? 0 : aimResponse(rawX, config.aimMin, config.aimCurve);
-	let ny = Math.abs(rawY) < DEAD ? 0 : aimResponse(rawY, config.aimMin, config.aimCurve);
-	if (nx === 0) state.velX = 0;
-	if (ny === 0) state.velY = 0;
-	// snap any tiny residue so the stick truly recenters
-	if (Math.abs(nx) < 0.005) nx = 0;
-	if (Math.abs(ny) < 0.005) ny = 0;
-	axes[AXIS.RX] = nx;
-	axes[AXIS.RY] = ny;
+	axes[AXIS.RX] = rawX === 0 ? 0 : aimResponse(rawX, config.aimMin, config.aimCurve);
+	axes[AXIS.RY] = rawY === 0 ? 0 : aimResponse(rawY, config.aimMin, config.aimCurve);
 
 	state.timestamp = now;
 }

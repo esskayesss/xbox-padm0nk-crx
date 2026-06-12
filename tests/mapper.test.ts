@@ -124,6 +124,29 @@ describe('mapper.step — right stick (mouse)', () => {
 		expect(at180).toBeCloseTo(at60, 2);
 	});
 
+	it('registers small/slow motion instead of deadzoning it (symmetric X and Y)', () => {
+		const dt = 1000 / 180;
+		const run = (axis: 'x' | 'y'): number => {
+			const s = createGamepadState();
+			const c = cfg({ smoothing: 0.25 });
+			let t = 0;
+			// slow creep ~0.3px/frame (~55px/s) — below the old magnitude deadzone,
+			// which silently dropped it (worst on the smaller-motion vertical axis).
+			for (let i = 0; i < 40; i++) {
+				if (axis === 'x') s.mouseDX = 0.3;
+				else s.mouseDY = 0.3;
+				t += dt;
+				step(c, s, t);
+			}
+			return axis === 'x' ? s.axes[2] : s.axes[3];
+		};
+		const x = run('x');
+		const y = run('y');
+		expect(x).toBeGreaterThan(0); // small motion is NOT dropped
+		expect(y).toBeGreaterThan(0);
+		expect(y).toBeCloseTo(x, 6); // perfectly symmetric
+	});
+
 	it('deadzone snap: residue < 0.005 collapses to 0', () => {
 		const s = createGamepadState();
 		// seed a tiny residual right-stick value, then tick with no mouse input

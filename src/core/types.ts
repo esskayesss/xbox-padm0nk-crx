@@ -86,6 +86,8 @@ export interface GamepadState {
 	velY: number;
 	/** Aim integrator: timestamp of the last mapper tick (ms); 0 before first tick. */
 	lastAimT: number;
+	/** Aim integrator: timestamp of the last frame that carried real mouse input (ms). */
+	lastMoveT: number;
 }
 
 /** A single remappable control in the controller-actions registry. */
