@@ -20,9 +20,10 @@
 </script>
 
 <div
-	class="pad-hud-bg pointer-events-auto fixed bottom-3 left-3 flex min-w-56 max-w-[min(320px,calc(100vw-24px))] select-none items-center gap-2 rounded-sm border p-1.5 backdrop-blur-md"
+	class="pad-hud-bg pointer-events-auto fixed bottom-3 left-3 flex min-w-56 max-w-[min(320px,calc(100vw-24px))] select-none items-center gap-2 rounded-sm border p-1.5 backdrop-blur-md transition-opacity duration-200 hover:opacity-100"
 	class:border-pad-accent={enabled}
 	class:border-pad-border={!enabled}
+	class:opacity-20={enabled}
 	onpointerdowncapture={stop}
 	onmousedowncapture={stop}
 	onmouseupcapture={stop}
