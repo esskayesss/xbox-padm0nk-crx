@@ -38,6 +38,10 @@ declare global {
 	}
 }
 
+// Injected at build time by Vite `define` (see vite.config.ts). Identifies the
+// exact build so console logs confirm which version is actually running.
+declare const __BUILD_STAMP__: string;
+
 // 1. Install guard — never double-install in one world.
 if (!window.__padm0nkInstalled) {
 	window.__padm0nkInstalled = true;
@@ -268,5 +272,7 @@ function main(): void {
 	};
 	installInputCapture(ctrl);
 
-	console.log('[padm0nk] installed — keyboard+mouse → virtual Xbox controller');
+	console.log(
+		`[padm0nk] installed (build ${__BUILD_STAMP__}) — keyboard+mouse → virtual Xbox controller`,
+	);
 }
