@@ -44,6 +44,8 @@
 	--color-pad-border: #34343f;
 	--color-pad-chip: #23232d;
 	--color-pad-text: #f4fff2;
+	--color-pad-white: #ffffff;
+	--color-pad-ink: #111111;
 
 	/* Surfaces layered over arbitrary page backgrounds (translucent). */
 	--color-pad-surface: rgba(255, 255, 255, 0.045);

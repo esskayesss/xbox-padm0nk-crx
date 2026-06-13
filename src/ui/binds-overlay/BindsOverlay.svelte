@@ -110,7 +110,7 @@
 			<div class="mt-1 flex flex-wrap items-center gap-1">
 				{#each ids as id (id)}
 					<span
-						class="bg-pad-chip border-pad-hairline inline-flex max-w-full items-center rounded-sm border px-1.5 py-0.5"
+						class="bg-pad-chip border-pad-border inline-flex max-w-full items-center rounded-sm border px-1.5 py-0.5"
 					>
 						<span class="text-pad-key truncate font-semibold {compact ? 'text-2xs' : 'text-xs'}"
 							>{prettyInput(id)}</span
@@ -213,10 +213,10 @@
 					</div>
 					<button
 						type="button"
-						class="pad-surface text-pad-accent hover:border-pad-accent flex cursor-pointer flex-col items-start rounded-sm border px-3 py-2"
+						class="bg-pad-white text-pad-ink hover:bg-pad-key flex cursor-pointer flex-col items-start rounded-sm px-3 py-2"
 						onclick={onConfigure}
 					>
-						<span class="text-pad-text text-sm">Configure keybinds</span>
+						<span class="text-sm">Configure keybinds</span>
 						<span class="mt-1 text-lg leading-none" aria-hidden="true">↗</span>
 					</button>
 				</div>
