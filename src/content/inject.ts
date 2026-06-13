@@ -32,6 +32,7 @@ import {
 	type MountHandle,
 } from '../ui/shadow';
 import { installInputCapture, type CaptureController } from './input-capture';
+import { installNavGuard, shouldArmNavGuard } from './nav-guard';
 
 declare global {
 	interface Window {
@@ -134,6 +135,7 @@ function main(): void {
 		}
 		hud.update(hudProps());
 		overlay.update(overlayProps());
+		updateNavGuard(); // re-evaluate arming on every config / enabled / overlay change
 	}
 
 	if (document.body) mountUi();
@@ -173,6 +175,30 @@ function main(): void {
 		// button state immediately, so keep the virtual snapshot in lockstep.
 		step(config, state, performance.now());
 		if (down) fireConnect(); // first mapped down brings the pad online
+	}
+
+	// --- Nav guard (mouse back/forward neutralizer) ----------------------------
+	// Mouse buttons 3/4 trigger non-cancelable browser back/forward (see
+	// nav-guard.ts). We arm a history-sentinel guard only during pointer-locked
+	// gameplay with a nav button bound, and pulse the bound action when our
+	// sentinel is popped (the raw mousedown for those buttons isn't reliable).
+	let pointerLocked = false;
+	const NAV_BUTTON_IDS = ['Mouse3', 'Mouse4'] as const;
+	function pulseNavButtons(): void {
+		for (const id of NAV_BUTTON_IDS) {
+			if (!config.bindings[id]) continue;
+			apply(id, true);
+			setTimeout(() => apply(id, false), 60); // brief pulse, mirrors the wheel path
+		}
+	}
+	const navGuard = installNavGuard({ onNavInput: pulseNavButtons });
+	function updateNavGuard(): void {
+		const navButtonBound = NAV_BUTTON_IDS.some((id) => Boolean(config.bindings[id]));
+		if (shouldArmNavGuard({ enabled: config.enabled, navButtonBound, pointerLocked })) {
+			navGuard.arm();
+		} else {
+			navGuard.disarm();
+		}
 	}
 	function toggle(): void {
 		config.enabled = !config.enabled;
@@ -295,6 +321,10 @@ function main(): void {
 			state.mouseDY += dy;
 		},
 		clearInputs: () => clearInputs(state),
+		onPointerLockChange: (locked) => {
+			pointerLocked = locked;
+			updateNavGuard();
+		},
 	};
 	installInputCapture(ctrl);
 }

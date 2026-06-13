@@ -37,6 +37,8 @@ export interface CaptureController {
 	addMouseDelta(dx: number, dy: number): void;
 	/** Drop all held inputs + pending mouse delta (focus/visibility loss, toggle-off). */
 	clearInputs(): void;
+	/** Notify the coordinator when pointer-lock engages/releases (nav-guard arming). */
+	onPointerLockChange(locked: boolean): void;
 }
 
 /**
@@ -77,6 +79,7 @@ export function installInputCapture(ctrl: CaptureController): () => void {
 
 	// --- Pointer-lock tracking -------------------------------------------------
 	let pointerLocked = document.pointerLockElement != null;
+	ctrl.onPointerLockChange(pointerLocked);
 
 	// --- Keyboard --------------------------------------------------------------
 	function onKey(e: KeyboardEvent, down: boolean): void {
@@ -234,6 +237,7 @@ export function installInputCapture(ctrl: CaptureController): () => void {
 	// --- Pointer-lock change ---------------------------------------------------
 	const pointerlockchangeHandler = (): void => {
 		pointerLocked = document.pointerLockElement != null;
+		ctrl.onPointerLockChange(pointerLocked);
 	};
 	document.addEventListener('pointerlockchange', pointerlockchangeHandler, true);
 
