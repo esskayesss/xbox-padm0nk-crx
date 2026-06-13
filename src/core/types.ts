@@ -109,6 +109,8 @@ export interface ControllerAction {
 /** An options-page group: a titled section of controller actions. */
 export interface ControllerGroup {
 	title: string;
+	/** True when this group's inputs are display-only (not user-rebindable). */
+	fixed?: boolean;
 	/** Optional descriptive text (e.g. the mouse-driven right stick). */
 	info?: string;
 	items: ControllerAction[];

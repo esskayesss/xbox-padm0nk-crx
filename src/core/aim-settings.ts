@@ -1,6 +1,7 @@
 // User-facing aim controls and conversion to internal mapper constants.
 // Internal values stay precise for mapper math; UI shows understandable values.
 
+import { clamp } from './math';
 import type { Config } from './types';
 
 export type AimSettingKey = 'sensitivity' | 'smoothing' | 'aimMin' | 'aimCurve';
@@ -27,7 +28,6 @@ export const AIM_LIMITS = {
 } as const;
 
 const BASE_SENSITIVITY = 0.018;
-const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 const finite = (v: number, fallback: number): number => (Number.isFinite(v) ? v : fallback);
 const snap = (v: number, c: AimSettingControl): number => {
 	const clamped = clamp(v, c.min, c.max);
@@ -49,11 +49,7 @@ export const AIM_CONTROLS: readonly AimSettingControl[] = [
 		toDisplay: (v) =>
 			(clamp(v, AIM_LIMITS.sensitivity.min, AIM_LIMITS.sensitivity.max) / BASE_SENSITIVITY) * 100,
 		toConfig: (v) =>
-			clamp(
-				(finite(v, 100) / 100) * BASE_SENSITIVITY,
-				AIM_LIMITS.sensitivity.min,
-				AIM_LIMITS.sensitivity.max,
-			),
+			clamp((v / 100) * BASE_SENSITIVITY, AIM_LIMITS.sensitivity.min, AIM_LIMITS.sensitivity.max),
 	},
 	{
 		key: 'smoothing',
@@ -66,7 +62,7 @@ export const AIM_CONTROLS: readonly AimSettingControl[] = [
 		unit: '%',
 		fallback: 25,
 		toDisplay: (v) => clamp(v, AIM_LIMITS.smoothing.min, AIM_LIMITS.smoothing.max) * 100,
-		toConfig: (v) => clamp(finite(v, 25) / 100, AIM_LIMITS.smoothing.min, AIM_LIMITS.smoothing.max),
+		toConfig: (v) => clamp(v / 100, AIM_LIMITS.smoothing.min, AIM_LIMITS.smoothing.max),
 	},
 	{
 		key: 'aimMin',
@@ -79,7 +75,7 @@ export const AIM_CONTROLS: readonly AimSettingControl[] = [
 		unit: '%',
 		fallback: 12,
 		toDisplay: (v) => clamp(v, AIM_LIMITS.aimMin.min, AIM_LIMITS.aimMin.max) * 100,
-		toConfig: (v) => clamp(finite(v, 12) / 100, AIM_LIMITS.aimMin.min, AIM_LIMITS.aimMin.max),
+		toConfig: (v) => clamp(v / 100, AIM_LIMITS.aimMin.min, AIM_LIMITS.aimMin.max),
 	},
 	{
 		key: 'aimCurve',
@@ -92,8 +88,7 @@ export const AIM_CONTROLS: readonly AimSettingControl[] = [
 		unit: '%',
 		fallback: 25,
 		toDisplay: (v) => (1 - clamp(v, AIM_LIMITS.aimCurve.min, AIM_LIMITS.aimCurve.max)) * 100,
-		toConfig: (v) =>
-			clamp(1 - finite(v, 25) / 100, AIM_LIMITS.aimCurve.min, AIM_LIMITS.aimCurve.max),
+		toConfig: (v) => clamp(1 - v / 100, AIM_LIMITS.aimCurve.min, AIM_LIMITS.aimCurve.max),
 	},
 ] as const;
 
@@ -105,17 +100,11 @@ export function aimDisplayValue(config: Config, key: AimSettingKey): number {
 	return aimControlFor(key).toDisplay(config[key]);
 }
 
-export function aimDisplayLabel(config: Config, key: AimSettingKey): string {
-	const c = aimControlFor(key);
-	const value = c.toDisplay(config[key]).toFixed(c.dp);
-	return `${value}${c.unit}`;
-}
-
-/** Slider fill percentage (0–100%) for the themed range track. */
-export function aimDisplayFill(config: Config, key: AimSettingKey): string {
+/** Slider fill percentage (0–100) for the themed range track. */
+export function aimDisplayFill(config: Config, key: AimSettingKey): number {
 	const c = aimControlFor(key);
 	const display = clamp(c.toDisplay(config[key]), c.min, c.max);
-	return `${((display - c.min) / (c.max - c.min)) * 100}%`;
+	return ((display - c.min) / (c.max - c.min)) * 100;
 }
 
 export function aimConfigValue(key: AimSettingKey, rawDisplay: string): number {

@@ -23,13 +23,32 @@ export const GROUP_TITLES = {
 	dpad: 'D-Pad',
 } as const;
 
-/** Info groups that carry descriptive text but no remappable items. */
-export const INFO_GROUPS: ReadonlyArray<{ title: string; info: string }> = [
+/** Info groups that carry descriptive text but no remappable items. */ export const INFO_GROUPS: ReadonlyArray<{
+	title: string;
+	info: string;
+}> = [
 	{
 		title: GROUP_TITLES.rightStick,
 		info: 'Driven by mouse movement. Tune sensitivity / smoothing below.',
 	},
 ];
+
+/**
+ * Group titles whose inputs are fixed (not user-rebindable from the options
+ * page). Keyed off the GROUP_TITLES constant — the same single source the
+ * registry groups by — so this can't drift from a renamed heading.
+ */
+const FIXED_GROUP_TITLES = new Set<string>([GROUP_TITLES.leftStick]);
+
+/** Stable serialization of an action's identity (button index, or axis+dir). */
+export function actionKey(a: Action): string {
+	return a.t === 'b' ? `b:${a.i}` : `a:${a.a}:${a.v}`;
+}
+
+/** True when two actions drive the same controller output. */
+export function actionEq(a: Action | undefined, b: Action | undefined): boolean {
+	return a != null && b != null && actionKey(a) === actionKey(b);
+}
 
 /**
  * The registry. Flattening defaultInputs -> action reproduces the legacy
@@ -227,13 +246,9 @@ export function allBindsConfigured(bindings: Bindings): boolean {
 	for (const id of Object.keys(bindings)) {
 		const a = bindings[id];
 		if (a == null) continue;
-		bound.add(a.t === 'b' ? `b:${a.i}` : `a:${a.a}:${a.v}`);
+		bound.add(actionKey(a));
 	}
-	return CONTROLLER_ACTIONS.every((entry) => {
-		const a = entry.action;
-		const key = a.t === 'b' ? `b:${a.i}` : `a:${a.a}:${a.v}`;
-		return bound.has(key);
-	});
+	return CONTROLLER_ACTIONS.every((entry) => bound.has(actionKey(entry.action)));
 }
 
 /** Flatten the registry's defaultInputs -> action into a Bindings map. */
@@ -260,7 +275,8 @@ export function groupsForOptions(): ControllerGroup[] {
 		const items = CONTROLLER_ACTIONS.filter((a) => a.group === title);
 		const info = infoByTitle.get(title);
 		if (items.length === 0 && info === undefined) continue;
-		groups.push(info === undefined ? { title, items } : { title, info, items });
+		const fixed = FIXED_GROUP_TITLES.has(title);
+		groups.push(info === undefined ? { title, fixed, items } : { title, fixed, info, items });
 	}
 	return groups;
 }

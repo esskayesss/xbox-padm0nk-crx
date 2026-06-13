@@ -3,22 +3,27 @@ import {
 	AIM_CONTROLS,
 	aimConfigValue,
 	aimDisplayFill,
-	aimDisplayLabel,
 	aimDisplayValue,
 } from '../src/core/aim-settings';
 import { DEFAULT_CONFIG } from '../src/core/config';
 
+/** Display value + unit, as the views render it (was the dead aimDisplayLabel). */
+function shownLabel(key: Parameters<typeof aimDisplayValue>[1]): string {
+	const control = AIM_CONTROLS.find((c) => c.key === key)!;
+	return `${aimDisplayValue(DEFAULT_CONFIG, key).toFixed(control.dp)}${control.unit}`;
+}
+
 describe('aim-settings display mapping', () => {
 	it('shows defaults in user-facing units', () => {
-		expect(aimDisplayLabel(DEFAULT_CONFIG, 'sensitivity')).toBe('100%');
-		expect(aimDisplayLabel(DEFAULT_CONFIG, 'smoothing')).toBe('25%');
-		expect(aimDisplayLabel(DEFAULT_CONFIG, 'aimMin')).toBe('12%');
-		expect(aimDisplayLabel(DEFAULT_CONFIG, 'aimCurve')).toBe('25%');
+		expect(shownLabel('sensitivity')).toBe('100%');
+		expect(shownLabel('smoothing')).toBe('25%');
+		expect(shownLabel('aimMin')).toBe('12%');
+		expect(shownLabel('aimCurve')).toBe('25%');
 	});
 
 	it('computes slider fill from display ranges', () => {
-		expect(aimDisplayFill(DEFAULT_CONFIG, 'sensitivity')).toBe('33.33333333333333%');
-		expect(aimDisplayFill(DEFAULT_CONFIG, 'smoothing')).toBe('26.31578947368421%');
+		expect(aimDisplayFill(DEFAULT_CONFIG, 'sensitivity')).toBeCloseTo(33.3333, 3);
+		expect(aimDisplayFill(DEFAULT_CONFIG, 'smoothing')).toBeCloseTo(26.3158, 3);
 	});
 
 	it('round-trips display values to internal config values', () => {

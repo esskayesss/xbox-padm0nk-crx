@@ -15,7 +15,7 @@
 		aimDisplayFill,
 		aimDisplayValue,
 	} from '../core/aim-settings';
-	import { groupsForOptions, GROUP_TITLES, allBindsConfigured } from '../core/controller-actions';
+	import { actionEq, groupsForOptions, allBindsConfigured } from '../core/controller-actions';
 	import { DEFAULT_CONFIG, normalizeConfig } from '../core/config';
 	import { comboFromEvent, comboLabel } from '../core/combos';
 	import { prettyInput } from '../core/labels';
@@ -27,10 +27,6 @@
 	const BUY_ME_COFFEE_URL = 'https://buymeacoffee.com/esskayesss';
 	const GITHUB_REPO_URL = 'https://github.com/esskayesss/xbox-padm0nk-crx';
 	const WEBSITE_URL = 'https://esskayesss.github.io/xbox-padm0nk-crx/';
-
-	/** Groups whose inputs are fixed and cannot be rebound (display-only). */
-	const FIXED_GROUPS = new Set<string>([GROUP_TITLES.leftStick]);
-	const isFixedGroup = (title: string): boolean => FIXED_GROUPS.has(title);
 
 	/** Resolve a bind-icon asset URL for the options (extension) page. */
 	function iconUrl(icon: string): string {
@@ -62,13 +58,6 @@
 	let saveQueueTimer: ReturnType<typeof setTimeout> | null = null;
 	let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 	let fileInput: HTMLInputElement;
-
-	const actionEq = (a: Action | undefined, b: Action): boolean =>
-		a != null &&
-		a.t === b.t &&
-		(a.t === 'b'
-			? a.i === (b as typeof a).i
-			: a.a === (b as typeof a).a && a.v === (b as typeof a).v);
 
 	/** Input ids currently bound to a given action. */
 	function inputsFor(action: Action): string[] {
@@ -333,7 +322,7 @@
 						{/if}
 						<span>{item.label}</span>
 					</div>
-					{#if isFixedGroup(group.title)}
+					{#if group.fixed}
 						<div class="flex flex-wrap items-center gap-1.5">
 							{#each inputsFor(item.action) as id (id)}
 								<span
@@ -367,7 +356,7 @@
 									'binding',
 									item.id,
 								)
-									? 'animate-pulse border-amber-500 bg-amber-950/40 text-amber-300'
+									? 'animate-pulse border-pad-capture bg-pad-capture-bg text-pad-capture'
 									: 'border-pad-accent/40 bg-pad-green/10 text-pad-accent'}"
 								onclick={() =>
 									isCapturing(capturing, 'binding', item.id)
@@ -402,7 +391,7 @@
 					type="range"
 					class="pad-range w-full"
 					aria-labelledby={`options-${s.key}-label`}
-					style={`--pad-fill: ${aimDisplayFill(config, s.key)}`}
+					style={`--pad-fill: ${aimDisplayFill(config, s.key)}%`}
 					min={s.min}
 					max={s.max}
 					step={s.step}
@@ -457,7 +446,7 @@
 					capturing,
 					'toggle',
 				)
-					? 'animate-pulse border-amber-500 bg-amber-950/40 text-amber-300'
+					? 'animate-pulse border-pad-capture bg-pad-capture-bg text-pad-capture'
 					: 'border-pad-accent/40 bg-pad-green/10 text-pad-accent'}"
 				onclick={() =>
 					isCapturing(capturing, 'toggle') ? cancelCapture() : startCapture({ kind: 'toggle' })}
@@ -474,7 +463,7 @@
 					capturing,
 					'help',
 				)
-					? 'animate-pulse border-amber-500 bg-amber-950/40 text-amber-300'
+					? 'animate-pulse border-pad-capture bg-pad-capture-bg text-pad-capture'
 					: 'border-pad-accent/40 bg-pad-green/10 text-pad-accent'}"
 				onclick={() =>
 					isCapturing(capturing, 'help') ? cancelCapture() : startCapture({ kind: 'help' })}
@@ -535,7 +524,7 @@
 	<div class="mt-4 flex flex-wrap gap-2.5">
 		<button
 			type="button"
-			class="text-pad-danger cursor-pointer rounded-md border border-red-900 bg-transparent px-3.5 py-2 text-sm hover:brightness-125"
+			class="text-pad-danger cursor-pointer rounded-md border border-pad-danger-border bg-transparent px-3.5 py-2 text-sm hover:brightness-125"
 			onclick={resetAll}
 		>
 			Reset everything to defaults

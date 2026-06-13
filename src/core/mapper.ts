@@ -3,9 +3,10 @@
 // consuming (zeroing) its mouse delta. Deterministic + unit-testable.
 
 import { AXIS } from './constants';
+import { AIM_LIMITS } from './aim-settings';
+import { DEFAULT_CONFIG } from './config';
+import { clamp } from './math';
 import type { Config, GamepadState } from './types';
-
-const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 
 /**
  * Aim response curve: shapes a raw normalized mouse delta into a stick output.
@@ -13,12 +14,16 @@ const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > 
  * applies a power curve (`aimCurve` < 1 boosts fine motion). Sign-preserving,
  * clamped to [-1, 1]. Exported for unit testing.
  */
-export function aimResponse(raw: number, aimMin = 0.12, aimCurve = 0.75): number {
+export function aimResponse(
+	raw: number,
+	aimMin = DEFAULT_CONFIG.aimMin,
+	aimCurve = DEFAULT_CONFIG.aimCurve,
+): number {
 	const value = clamp(raw, -1, 1);
 	const magnitude = Math.abs(value);
 	if (magnitude === 0) return 0;
-	const min = clamp(aimMin, 0, 0.5);
-	const curve = clamp(aimCurve, 0.25, 2);
+	const min = clamp(aimMin, AIM_LIMITS.aimMin.min, AIM_LIMITS.aimMin.max);
+	const curve = clamp(aimCurve, AIM_LIMITS.aimCurve.min, AIM_LIMITS.aimCurve.max);
 	const shaped = magnitude ** curve;
 	return Math.sign(value) * clamp(min + (1 - min) * shaped, 0, 1);
 }
@@ -114,8 +119,8 @@ export function step(config: Config, state: GamepadState, now: number): void {
 
 	const rawX = (state.velX / 60) * sens;
 	const rawY = (state.velY / 60) * sens * (config.invertY ? -1 : 1);
-	let nx = rawX === 0 ? 0 : aimResponse(rawX, min, config.aimCurve);
-	let ny = rawY === 0 ? 0 : aimResponse(rawY, min, config.aimCurve);
+	let nx = aimResponse(rawX, min, config.aimCurve);
+	let ny = aimResponse(rawY, min, config.aimCurve);
 	// once idle and decayed to a hair, settle to true rest (kills float residue)
 	if (!active) {
 		if (Math.abs(nx) < 0.02) {

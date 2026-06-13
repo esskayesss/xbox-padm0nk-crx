@@ -2,6 +2,7 @@
 
 import { AIM_LIMITS } from './aim-settings';
 import { buildDefaultBindings } from './controller-actions';
+import { clamp } from './math';
 import type { Action, Bindings, Combo, Config } from './types';
 
 /** Built once; bindings derived from the controller-actions registry. */
@@ -18,8 +19,6 @@ export const DEFAULT_CONFIG: Config = {
 	helpCombo: { code: 'F9', ctrl: false, alt: false, shift: false, meta: false },
 	bindings: buildDefaultBindings(),
 };
-
-const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 
 function isRecord(v: unknown): v is Record<string, unknown> {
 	return typeof v === 'object' && v !== null;

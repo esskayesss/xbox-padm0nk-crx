@@ -34,6 +34,11 @@
 	--color-pad-bg-3: #16161c;
 	--color-pad-muted: #8a8a93;
 	--color-pad-danger: #ff7b7b;
+	--color-pad-danger-border: #7f1d1d;
+	/* Capturing-input affordance (options-page rebind prompt). */
+	--color-pad-capture: #fcd34d;
+	--color-pad-capture-border: #f59e0b;
+	--color-pad-capture-bg: rgba(69, 26, 3, 0.4);
 	--color-pad-sponsor: #db61a2;
 	--color-pad-sponsor-strong: #bf3989;
 	--color-pad-sponsor-soft: #fde7f3;
@@ -63,6 +68,9 @@
 		minmax(11.25rem, 0.75fr);
 	--grid-template-columns-field: 8.75rem 1fr;
 
+	/* Named breakpoint for the binds-overlay reflow (was max-[900px]). */
+	--breakpoint-binds: 900px;
+
 	/* Box shadows (themed glows). */
 	--shadow-pad-panel:
 		0 28px 90px rgba(0, 0, 0, 0.62),
@@ -86,6 +94,23 @@
  * here, referencing palette tokens above.
  */
 @layer components {
+	/* Modal backdrop: dim + blur the page behind the binds overlay. */
+	.pad-backdrop {
+		background: color-mix(in srgb, black 52%, transparent);
+		backdrop-filter: blur(6px);
+	}
+
+	/* HUD shell: clamp width on narrow viewports without arbitrary brackets. */
+	.pad-hud-shell {
+		max-width: min(320px, calc(100vw - 24px));
+	}
+
+	/* Binds overlay panel: viewport-bounded size without arbitrary brackets. */
+	.pad-binds-panel {
+		width: min(1040px, calc(100vw - 32px));
+		max-height: calc(100vh - 32px);
+	}
+
 	/* Brand icon orb (HUD + overlay header). */
 	.pad-orb {
 		background: linear-gradient(

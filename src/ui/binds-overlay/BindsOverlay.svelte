@@ -17,7 +17,7 @@
 	// matched to the legacy CSS — no raw hex.
 	import { prettyInput } from '../../core/labels';
 	import { comboLabel } from '../../core/combos';
-	import { allBindsConfigured } from '../../core/controller-actions';
+	import { actionEq, allBindsConfigured } from '../../core/controller-actions';
 	import type { Action, Bindings, Combo } from '../../core/types';
 
 	interface Props {
@@ -78,22 +78,8 @@
 	];
 
 	/** Action equality — button by index, axis by (axis, direction). */
-	function actionEq(a: Action, b: Action): boolean {
-		if (a.t !== b.t) return false;
-		if (a.t === 'b' && b.t === 'b') return a.i === b.i;
-		if (a.t === 'a' && b.t === 'a') return a.a === b.a && a.v === b.v;
-		return false;
-	}
-
 	function inputIdsFor(action: Action): string[] {
 		return Object.keys(bindings).filter((id) => actionEq(bindings[id]!, action));
-	}
-
-	function rowValue(row: Row): string {
-		if (row.value) return row.value;
-		if (!row.action) return 'UNMAPPED';
-		const ids = inputIdsFor(row.action);
-		return ids.length ? ids.map(prettyInput).join(' / ') : 'UNMAPPED';
 	}
 
 	// Second line of defense (see shadow.ts CLICK-SAFETY): swallow on the panel.
@@ -107,7 +93,7 @@
 	{#if row.action}
 		{@const ids = inputIdsFor(row.action)}
 		{#if ids.length}
-			<div class="mt-1 flex flex-wrap items-center gap-1">
+			<div class="flex flex-wrap items-center gap-1">
 				{#each ids as id (id)}
 					<span
 						class="bg-pad-chip border-pad-border inline-flex max-w-full items-center rounded-sm border px-1.5 py-0.5"
@@ -125,7 +111,7 @@
 		{/if}
 	{:else}
 		<span class="text-pad-text block truncate {compact ? 'text-xs' : 'text-sm'} leading-tight">
-			{rowValue(row)}
+			{row.value ?? 'UNMAPPED'}
 		</span>
 	{/if}
 {/snippet}
@@ -133,8 +119,7 @@
 {#if open}
 	<!-- Backdrop: pointer-events on (host is click-through); click closes. -->
 	<div
-		class="pointer-events-auto fixed inset-0 grid place-items-center p-4"
-		style="background:color-mix(in srgb, black 52%, transparent);backdrop-filter:blur(6px);"
+		class="pad-backdrop pointer-events-auto fixed inset-0 grid place-items-center p-4"
 		onpointerdowncapture={stop}
 		onmousedowncapture={stop}
 		onmouseupcapture={stop}
@@ -152,7 +137,7 @@
 	>
 		<!-- Panel -->
 		<div
-			class="text-pad-text pad-panel-bg border-pad-accent/40 max-h-[calc(100vh-32px)] w-[min(1040px,calc(100vw-32px))] overflow-auto rounded-lg border p-5"
+			class="text-pad-text pad-panel-bg pad-binds-panel border-pad-accent/40 overflow-auto rounded-lg border p-5"
 			onpointerdowncapture={stop}
 			onmousedowncapture={stop}
 			onmouseupcapture={stop}
@@ -171,7 +156,7 @@
 			{/if}
 			<!-- Header: brand orb + title/subtitle | shortcut legends -->
 			<div
-				class="mb-4 flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start"
+				class="mb-4 flex items-center justify-between gap-4 max-binds:flex-col max-binds:items-start"
 			>
 				<div class="flex items-center gap-3.5">
 					<!-- Brand orb (green gradient; dim+grayscale when disabled) -->
@@ -200,8 +185,8 @@
 					</div>
 				</div>
 
-				<div class="flex items-stretch gap-2.5 max-[900px]:flex-1">
-					<div class="grid min-w-64 grid-cols-2 gap-2.5 max-[900px]:min-w-0 max-[900px]:flex-1">
+				<div class="flex items-stretch gap-2.5 max-binds:flex-1">
+					<div class="grid min-w-64 grid-cols-2 gap-2.5 max-binds:min-w-0 max-binds:flex-1">
 						<div class="pad-surface rounded-sm border px-3 py-2">
 							<span class="text-pad-muted block text-xs uppercase">Toggle</span>
 							<span class="text-pad-text block text-sm">{comboLabel(toggleCombo)}</span>
@@ -223,11 +208,11 @@
 			</div>
 
 			<!-- Body: 3 columns (rails + center pad-map); stacks under 900px -->
-			<div class="grid grid-cols-binds items-stretch gap-4 max-[900px]:grid-cols-1">
+			<div class="grid grid-cols-binds items-stretch gap-4 max-binds:grid-cols-1">
 				<!-- LEFT rail -->
-				<div class="grid content-start gap-2 max-[900px]:grid-cols-2">
+				<div class="grid content-start gap-2 max-binds:grid-cols-2">
 					<div
-						class="text-pad-accent mb-0.5 text-xs tracking-widest uppercase max-[900px]:col-span-full"
+						class="text-pad-accent mb-0.5 text-xs tracking-widest uppercase max-binds:col-span-full"
 					>
 						Left side
 					</div>
@@ -256,7 +241,7 @@
 
 				<!-- CENTER: controller art on top; system buttons + aim bar docked bottom -->
 				<div
-					class="pad-card-bg border-pad-hairline flex min-w-0 flex-col rounded-md border p-3 max-[900px]:order-first"
+					class="pad-card-bg border-pad-hairline flex min-w-0 flex-col rounded-md border p-3 max-binds:order-first"
 				>
 					<div
 						class="pad-padmap-bg relative aspect-controller w-full overflow-visible rounded-md"
@@ -279,13 +264,13 @@
 						>
 							{#each systemChips as chip (chip.label)}
 								<div
-									class="pad-surface flex w-full min-w-24 items-center gap-2 rounded-sm border px-2 py-1.5"
+									class="pad-surface flex w-full min-w-24 items-center gap-1 rounded-sm border px-2 py-1.5"
 								>
 									{#if bindIconBase}
 										<img
 											src={bindIconBase + chip.icon}
 											alt={chip.label}
-											class="pad-icon-glow size-5 shrink-0 object-contain"
+											class="pad-icon-glow size-8 shrink-0 object-contain"
 										/>
 									{:else}
 										<span class="text-pad-muted text-xs" aria-hidden="true">•</span>
@@ -313,9 +298,9 @@
 				</div>
 
 				<!-- RIGHT rail -->
-				<div class="grid content-start gap-2 max-[900px]:grid-cols-2">
+				<div class="grid content-start gap-2 max-binds:grid-cols-2">
 					<div
-						class="text-pad-accent mb-0.5 text-xs tracking-widest uppercase max-[900px]:col-span-full text-right"
+						class="text-pad-accent mb-0.5 text-right text-xs tracking-widest uppercase max-binds:col-span-full"
 					>
 						Right side
 					</div>

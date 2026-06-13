@@ -159,7 +159,7 @@
 						type="range"
 						class="pad-range w-full"
 						aria-labelledby={`popup-${s.key}-label`}
-						style={`--pad-fill: ${aimDisplayFill(config, s.key)}`}
+						style={`--pad-fill: ${aimDisplayFill(config, s.key)}%`}
 						min={s.min}
 						max={s.max}
 						step={s.step}
