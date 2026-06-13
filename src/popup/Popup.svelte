@@ -110,8 +110,8 @@
 	}
 </script>
 
-<main class="bg-pad-bg text-pad-text w-70 overflow-hidden font-sans text-sm leading-tight">
-	<section class="pad-panel-bg border-pad-accent/40 border-b p-3">
+<main class="bg-pad-bg text-pad-text w-70 overflow-hidden p-2 font-sans text-sm leading-tight">
+	<section class="pad-panel-bg border-pad-accent/40 rounded-md border p-3">
 		<header class="flex items-start gap-3">
 			<span
 				class="pad-orb grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm p-1.5"
@@ -147,37 +147,35 @@
 			</div>
 		</header>
 
-		<label
-			class="bg-pad-chip/80 border-pad-hairline mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-sm border px-3 py-2"
-		>
-			<span class="font-semibold">Virtual controller</span>
-			<input
-				type="checkbox"
-				class="accent-pad-accent size-5"
-				checked={config.enabled}
-				onchange={(e) => setBool('enabled', e.currentTarget.checked)}
-			/>
-		</label>
-	</section>
-
-	<section class="grid gap-2 p-3">
-		<div class="grid grid-cols-2 gap-2">
+		<div class="mt-3 grid grid-cols-3 gap-2">
+			<label
+				class="pad-surface flex cursor-pointer items-center justify-between gap-2 rounded-sm border p-2"
+			>
+				<span class="text-pad-text text-xs font-semibold">Enabled</span>
+				<input
+					type="checkbox"
+					class="accent-pad-accent"
+					checked={config.enabled}
+					onchange={(e) => setBool('enabled', e.currentTarget.checked)}
+				/>
+			</label>
 			{#each TOGGLES as t (t.key)}
-				<label class="pad-surface cursor-pointer rounded-sm border p-2">
-					<div class="mb-2 flex items-center justify-between gap-2">
-						<span class="text-pad-text text-xs font-semibold">{t.label}</span>
-						<input
-							type="checkbox"
-							class="accent-pad-accent"
-							checked={config[t.key]}
-							onchange={(e) => setBool(t.key, e.currentTarget.checked)}
-						/>
-					</div>
-					<span class="text-pad-muted text-2xs uppercase tracking-wide">{t.hint}</span>
+				<label
+					class="pad-surface flex cursor-pointer items-center justify-between gap-2 rounded-sm border p-2"
+				>
+					<span class="text-pad-text text-xs font-semibold">{t.label}</span>
+					<input
+						type="checkbox"
+						class="accent-pad-accent"
+						checked={config[t.key]}
+						onchange={(e) => setBool(t.key, e.currentTarget.checked)}
+					/>
 				</label>
 			{/each}
 		</div>
+	</section>
 
+	<section class="grid gap-2 pt-2">
 		<section class="pad-surface grid gap-3 rounded-md border p-3">
 			<div class="flex items-center justify-between">
 				<h2 class="text-pad-accent text-xs font-semibold tracking-widest uppercase">Aim tuning</h2>
