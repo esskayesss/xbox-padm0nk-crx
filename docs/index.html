@@ -1,72 +1,344 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>padm0nk — Mouse & Keyboard for Cloud Gaming</title>
-    <style>
-      :root {
-        color-scheme: dark;
-      }
-      body {
-        margin: 0 auto;
-        max-width: 720px;
-        padding: 64px 20px 80px;
-        background: #16161c;
-        color: #e6e6e6;
-        font:
-          16px/1.6 -apple-system,
-          system-ui,
-          Segoe UI,
-          Roboto,
-          sans-serif;
-        text-align: center;
-      }
-      img {
-        width: 112px;
-        height: 112px;
-        border-radius: 24px;
-      }
-      h1 {
-        color: #9fef7f;
-        font-size: 2rem;
-        margin: 0.4em 0 0.2em;
-      }
-      p.lead {
-        font-size: 1.1rem;
-        color: #cdd2cd;
-      }
-      a {
-        color: #9fef7f;
-      }
-      .muted {
-        color: #8a8a93;
-        font-size: 0.9rem;
-        margin-top: 3em;
-      }
-      ul {
-        display: inline-block;
-        text-align: left;
-        color: #cdd2cd;
-      }
-    </style>
-  </head>
-  <body>
-    <img src="../icons/padm0nk.png" alt="padm0nk icon" />
-    <h1>padm0nk</h1>
-    <p class="lead">
-      Play Xbox Cloud Gaming with a mouse and keyboard — a virtual Xbox
-      controller, right in your browser. Free, no drivers.
-    </p>
-    <ul>
-      <li>WASD → left stick, mouse → aim (right stick)</li>
-      <li>Fully remappable buttons and sensitivity</li>
-      <li>Local-only: no accounts, no tracking, no servers</li>
-    </ul>
-    <p><a href="./privacy.html">Privacy Policy</a></p>
-    <p class="muted">
-      Independent tool. Not affiliated with Microsoft. Xbox is a trademark of
-      Microsoft Corporation.
-    </p>
-  </body>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta
+			name="description"
+			content="padm0nk maps mouse and keyboard input to a virtual Xbox controller for Xbox Cloud Gaming. Free, open source, local-only."
+		/>
+		<title>padm0nk — mouse + keyboard for Xbox Cloud Gaming</title>
+		<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+		<style type="text/tailwindcss">
+			@theme {
+				--font-sans: 'Bahnschrift', 'Segoe UI', system-ui, sans-serif;
+				--color-pad-green: #107c10;
+				--color-pad-green-hover: #0f8f12;
+				--color-pad-accent: #9fef7f;
+				--color-pad-key: #cdffc3;
+				--color-pad-bg: #0f0f14;
+				--color-pad-bg2: #14141a;
+				--color-pad-bg3: #16161c;
+				--color-pad-muted: #8a8a93;
+				--color-pad-border: #34343f;
+				--color-pad-chip: #23232d;
+				--color-pad-text: #f4fff2;
+				--color-pad-sponsor: #db61a2;
+				--color-pad-sponsor-strong: #bf3989;
+				--color-pad-sponsor-soft: #fde7f3;
+				--color-pad-coffee: #ffdd00;
+				--color-pad-coffee-hover: #ffcc00;
+				--color-pad-coffee-border: #d69b00;
+				--color-pad-coffee-text: #111111;
+				--shadow-panel: 0 28px 90px rgba(0, 0, 0, 0.62), 0 0 42px rgba(16, 124, 16, 0.18);
+				--shadow-tile: 0 18px 44px rgba(0, 0, 0, 0.42);
+				--shadow-orb: 0 0 24px rgba(16, 124, 16, 0.56), inset 0 0 18px rgba(255, 255, 255, 0.12);
+			}
+		</style>
+	</head>
+	<body class="bg-pad-bg text-pad-text min-h-screen font-sans antialiased">
+		<main class="relative isolate overflow-hidden">
+			<div
+				class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_58%_12%,rgba(16,124,16,.30),transparent_30%),linear-gradient(145deg,#14141a,#0f0f14_62%)]"
+			></div>
+			<div
+				class="via-pad-accent/70 absolute inset-x-0 top-0 -z-10 h-px bg-gradient-to-r from-transparent to-transparent"
+			></div>
+
+			<section
+				class="mx-auto grid max-w-7xl gap-8 px-5 pt-8 pb-8 sm:px-8 lg:grid-cols-[1fr_.86fr] lg:items-center lg:pt-12 lg:pb-14"
+			>
+				<div>
+					<a
+						class="mb-6 flex w-fit items-center gap-3"
+						href="https://github.com/esskayesss/xbox-padm0nk-crx"
+					>
+						<span
+							class="from-pad-green shadow-orb grid size-12 place-items-center rounded-sm bg-gradient-to-br to-black/70"
+						>
+							<img src="./assets/icon-128.png" alt="padm0nk" class="size-9 rounded-sm" />
+						</span>
+						<span class="text-pad-accent text-2xl font-black">padm0nk</span>
+					</a>
+					<p
+						class="border-pad-accent/30 bg-pad-green/20 text-pad-key mb-4 inline-flex rounded-sm border px-3 py-1 text-sm font-bold"
+					>
+						Xbox Cloud Gaming input bridge
+					</p>
+					<h1
+						class="text-pad-text max-w-4xl text-5xl leading-none font-black tracking-tight sm:text-6xl lg:text-7xl"
+					>
+						Mouse and keyboard for Xbox Cloud Gaming.
+					</h1>
+					<p class="text-pad-text/76 mt-5 max-w-2xl text-lg leading-8">
+						padm0nk gives xCloud a virtual Xbox controller: WASD becomes left stick, mouse movement
+						becomes right stick, and remapping stays available in-game.
+					</p>
+					<div class="mt-8 flex flex-wrap gap-3">
+						<a class="cta" href="https://github.com/esskayesss/xbox-padm0nk-crx/releases"
+							>Download release</a
+						>
+						<a class="ghost" href="https://github.com/esskayesss/xbox-padm0nk-crx">View source</a>
+					</div>
+				</div>
+
+				<aside class="bind-panel bg-pad-bg2/95 shadow-panel rounded-md border border-white/10 p-4">
+					<div class="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
+						<div>
+							<p class="text-pad-muted text-sm font-bold tracking-wide uppercase">Bind overlay</p>
+							<h2 class="text-pad-accent mt-1 text-2xl font-black">Know every input</h2>
+						</div>
+						<kbd>F9</kbd>
+					</div>
+
+					<div class="controller-glow">
+						<img
+							src="./assets/xbox-controller.svg"
+							alt="Xbox controller outline"
+							class="mx-auto max-h-44 w-full object-contain opacity-95 drop-shadow-[0_18px_28px_rgba(0,0,0,.55)]"
+						/>
+					</div>
+
+					<div class="mt-2 grid grid-cols-2 gap-2">
+						<div class="bind-tile">
+							<img src="./assets/left-stick.svg" alt="" />
+							<span>Left stick</span>
+							<kbd>WASD</kbd>
+						</div>
+						<div class="bind-tile">
+							<img src="./assets/right-stick.svg" alt="" />
+							<span>Right stick</span>
+							<kbd>Mouse move</kbd>
+						</div>
+						<div class="bind-tile">
+							<img src="./assets/right-trigger.svg" alt="" />
+							<span>RT</span>
+							<kbd>Left click</kbd>
+						</div>
+						<div class="bind-tile">
+							<img src="./assets/a.svg" alt="" />
+							<span>A</span>
+							<kbd>Space</kbd>
+						</div>
+					</div>
+
+					<p
+						class="text-pad-text/70 mt-4 rounded-sm border border-white/10 bg-black/30 p-3 text-sm leading-6"
+					>
+						Open the overlay in-game to review current binds, confirm movement and aim inputs, and
+						edit remappable buttons without leaving the session.
+					</p>
+				</aside>
+			</section>
+
+			<section id="features" class="mx-auto max-w-7xl px-5 pb-8 sm:px-8">
+				<div class="grid gap-4 md:grid-cols-3">
+					<article
+						class="feature-tile bg-[radial-gradient(circle_at_80%_18%,rgba(159,254,127,.16),transparent_38%),#14141a]"
+					>
+						<p>01</p>
+						<h2>Browser-only</h2>
+						<span
+							>No native helper, kernel driver, ViGEmBus, or background daemon. Just extension code
+							and the Gamepad API.</span
+						>
+					</article>
+					<article
+						class="feature-tile bg-[radial-gradient(circle_at_70%_18%,rgba(16,124,16,.24),transparent_42%),#14141a]"
+					>
+						<p>02</p>
+						<h2>Fast remaps</h2>
+						<span
+							>Buttons, mouse buttons, wheel input, combos, invert-Y, sensitivity, smoothing, aim
+							curve, all live.</span
+						>
+					</article>
+					<article
+						class="feature-tile bg-[radial-gradient(circle_at_72%_18%,rgba(205,255,195,.13),transparent_40%),#14141a]"
+					>
+						<p>03</p>
+						<h2>Local-first</h2>
+						<span
+							>Config stays in browser storage. No analytics, telemetry, accounts, remote code, or
+							padm0nk server.</span
+						>
+					</article>
+				</div>
+			</section>
+
+			<section class="mx-auto max-w-7xl px-5 pb-8 sm:px-8">
+				<div class="sponsor-banner">
+					<span>
+						<strong>❤ Support padm0nk</strong>
+						<span>Keep the extension free, open source, and actively maintained.</span>
+					</span>
+					<div class="sponsor-actions">
+						<a href="https://github.com/sponsors/esskayesss">GitHub Sponsors</a>
+						<a href="https://buymeacoffee.com/esskayesss">Buy Me a Coffee</a>
+					</div>
+				</div>
+			</section>
+
+			<section class="mx-auto grid max-w-7xl gap-4 px-5 pb-10 sm:px-8 lg:grid-cols-[.9fr_1.1fr]">
+				<div id="install" class="bg-pad-bg2/95 shadow-tile rounded-md border border-white/10 p-5">
+					<h2 class="section-title">Load from source</h2>
+					<ol class="text-pad-text/78 mt-5 grid gap-3 text-base leading-7">
+						<li><span class="step">1</span> Install dependencies: <code>npm install</code></li>
+						<li><span class="step">2</span> Build extension: <code>npm run build</code></li>
+						<li>
+							<span class="step">3</span> Open <code>chrome://extensions</code> or
+							<code>edge://extensions</code>
+						</li>
+						<li>
+							<span class="step">4</span> Enable Developer mode, then load the generated
+							<code>dist/</code> folder
+						</li>
+					</ol>
+				</div>
+
+				<div class="shadow-tile rounded-md border border-white/10 bg-white/[.035] p-5">
+					<h2 class="section-title">Aim notes</h2>
+					<div class="mt-5 grid gap-3 sm:grid-cols-2">
+						<div class="mini-tile"><strong>WASD</strong><span>left-stick movement</span></div>
+						<div class="mini-tile">
+							<strong>Mouse</strong><span>right-stick aim via Pointer Lock</span>
+						</div>
+						<div class="mini-tile"><strong>F8</strong><span>enable / disable instantly</span></div>
+						<div class="mini-tile"><strong>F9</strong><span>open binds overlay</span></div>
+					</div>
+					<p class="text-pad-text/70 mt-5 text-base leading-7">
+						Gamepad emulation keeps the game's maximum turn rate. Sensitivity changes how quickly
+						mouse movement reaches full stick deflection; it does not bypass game-side turn-speed
+						limits.
+					</p>
+				</div>
+			</section>
+
+			<section id="data" class="mx-auto max-w-7xl px-5 pb-12 sm:px-8">
+				<div class="border-pad-accent/25 bg-pad-chip/55 shadow-tile rounded-md border p-5">
+					<h2 class="section-title">Data statement</h2>
+					<p class="text-pad-text/75 mt-3 max-w-4xl text-base leading-7">
+						padm0nk is free and open source. It stores your config locally in browser storage so
+						tabs can update live. It has no account system, analytics, telemetry, remote code
+						loading, or extension-operated server. Source is available for audit; inspect it, build
+						it, load it.
+					</p>
+				</div>
+			</section>
+
+			<footer class="border-t border-white/10 bg-black/20 px-5 py-6 sm:px-8">
+				<div
+					class="text-pad-muted mx-auto flex max-w-7xl flex-col gap-3 text-sm md:flex-row md:items-center md:justify-between"
+				>
+					<p>
+						Independent tool. Not affiliated with Microsoft. Xbox is a trademark of Microsoft
+						Corporation.
+					</p>
+					<p class="text-pad-key font-bold tracking-wide uppercase">
+						free · open source · local first
+					</p>
+				</div>
+			</footer>
+		</main>
+
+		<style type="text/tailwindcss">
+			@layer base {
+				html,
+				body,
+				button,
+				kbd,
+				code {
+					font-family: 'Bahnschrift', 'Segoe UI', Arial, system-ui, sans-serif;
+				}
+			}
+			@layer components {
+				.cta {
+					@apply bg-pad-green hover:bg-pad-green-hover inline-flex items-center justify-center rounded-sm px-5 py-3 text-sm font-black tracking-wide text-white uppercase;
+				}
+				.ghost {
+					@apply text-pad-text hover:border-pad-accent/45 inline-flex items-center justify-center rounded-sm border border-white/15 bg-white/[.045] px-5 py-3 text-sm font-black tracking-wide uppercase;
+				}
+				.sponsor-banner {
+					@apply border-pad-sponsor-strong bg-pad-sponsor text-pad-sponsor-soft shadow-tile flex flex-col gap-4 rounded-md border px-5 py-4 sm:flex-row sm:items-center sm:justify-between;
+				}
+				.sponsor-banner strong {
+					@apply block text-base font-black tracking-wide uppercase;
+				}
+				.sponsor-banner span span {
+					@apply text-pad-sponsor-soft/85 mt-1 block text-sm;
+				}
+				.sponsor-actions {
+					@apply flex flex-wrap gap-2;
+				}
+				.sponsor-actions a {
+					@apply bg-pad-sponsor-soft text-pad-sponsor-strong rounded-sm px-3 py-1 text-xs font-black uppercase hover:brightness-95;
+				}
+				.sponsor-actions a:last-child {
+					@apply border-pad-coffee-border bg-pad-coffee text-pad-coffee-text hover:bg-pad-coffee-hover border;
+				}
+				.bind-panel {
+					overflow: visible;
+					background:
+						radial-gradient(circle at 50% 35%, rgba(16, 124, 16, 0.2), transparent 42%),
+						color-mix(in srgb, var(--color-pad-bg2) 95%, transparent);
+				}
+				.controller-glow {
+					position: relative;
+					overflow: visible;
+					padding: 0.15rem 0 0.2rem;
+				}
+				.controller-glow::before {
+					content: '';
+					position: absolute;
+					inset: 12% 12% 0;
+					z-index: -1;
+					background: radial-gradient(circle at 50% 40%, rgba(16, 124, 16, 0.28), transparent 58%);
+					filter: blur(18px);
+				}
+				.bind-tile {
+					@apply grid min-h-20 grid-cols-[auto_1fr] content-center items-center gap-x-3 gap-y-1 rounded-sm border border-white/10 bg-white/[.045] p-2.5;
+				}
+				.bind-tile img {
+					@apply row-span-2 size-9 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,.45)];
+				}
+				.bind-tile span {
+					@apply text-pad-text text-sm font-bold;
+				}
+				kbd {
+					line-height: 1;
+					@apply bg-pad-chip text-pad-key w-fit rounded-sm border border-white/10 px-2 py-1 text-xs font-black tracking-normal;
+				}
+				.feature-tile {
+					@apply shadow-tile min-h-60 rounded-md border border-white/10 p-5;
+				}
+				.feature-tile p {
+					@apply text-pad-key/70 text-sm font-black;
+				}
+				.feature-tile h2 {
+					@apply text-pad-text mt-12 text-3xl font-black;
+				}
+				.feature-tile span {
+					@apply text-pad-text/72 mt-3 block text-base leading-7;
+				}
+				.section-title {
+					@apply text-pad-accent text-sm font-black tracking-wide uppercase;
+				}
+				code {
+					@apply bg-pad-chip text-pad-key rounded-sm px-1.5 py-0.5 text-sm font-bold;
+				}
+				.step {
+					@apply bg-pad-green mr-2 inline-grid size-7 place-items-center rounded-sm text-sm font-black text-white;
+				}
+				.mini-tile {
+					@apply rounded-sm border border-white/10 bg-black/30 p-4;
+				}
+				.mini-tile strong {
+					@apply text-pad-key block text-lg font-black;
+				}
+				.mini-tile span {
+					@apply text-pad-text/75 mt-1 block text-sm;
+				}
+			}
+		</style>
+	</body>
 </html>

@@ -54,27 +54,27 @@ The toggle and show-binds shortcuts are configurable combos (defaults `F8` / `F9
 
 ## Settings
 
-Tune these from the extension popup (or Advanced remapping). All values are clamped to the ranges below.
+Tune these from the extension popup (or Advanced remapping). The UI shows player-facing values; internally, padm0nk converts them to the right-stick mapper constants.
 
 | Setting | Default | Range | What it does |
 | --- | --- | --- | --- |
-| **Sensitivity** | `0.018` | `0.002–0.05` | How much mouse movement maps to right-stick deflection. Higher = the stick reaches full throw (max in-game turn rate) with less hand motion. This is the main "how fast do I aim" dial. |
-| **Smoothing** | `0.25` | `0–0.95` | Response time-constant for aim. `0` ≈ 25 ms (instant, snappiest, can feel twitchy on a cheap mouse); higher values lengthen it (`0.25` ≈ 85 ms, up to ~250 ms) for buttery-smooth-but-laggier motion. It damps the per-frame jitter from mouse polling — it does **not** add a turn-speed cap. |
-| **Aim min** | `0.12` | `0–0.5` | Minimum non-zero stick output. Many games swallow tiny stick deflections inside a hidden deadzone, so slow mouse movement would do nothing. This floor lifts any real motion above that deadzone so fine aim registers. Raise it if slow aim feels dead; lower it if the crosshair creeps on its own. |
-| **Aim curve** | `0.75` | `0.25–2` | Response curve exponent. `< 1` boosts fine/low-speed motion (precise tracking) while still reaching full throw on big moves; `1` is linear; `> 1` softens the start for a slower, more deliberate feel. |
+| **Look speed** | `100%` | `10–280%` | How much mouse movement maps to right-stick deflection. Higher = the stick reaches full throw (max in-game turn rate) with less hand motion. This is the main "how fast do I aim" dial. |
+| **Smoothing** | `25%` | `0–95%` | Response time-constant for aim. `0%` ≈ 25 ms (instant, snappiest, can feel twitchy on a cheap mouse); higher values lengthen it (`25%` ≈ 85 ms, up to ~250 ms) for buttery-smooth-but-laggier motion. It damps mouse polling jitter — it does **not** add a turn-speed cap. |
+| **Deadzone lift** | `12%` | `0–50%` | Minimum non-zero stick output while the mouse is actively moving. Many games swallow tiny stick deflections inside a hidden deadzone, so slow mouse movement would do nothing. Raise it if slow aim feels dead; lower it if the crosshair creeps on its own. |
+| **Fine aim boost** | `+25%` | `-100–+75%` | Shape around small mouse movement. `0%` is linear; positive values boost micro aim for easier tracking; negative values soften the start for slower, steadier aim. |
 | **Invert Y** | `off` | on/off | Flips vertical aim (mouse up → look down). |
 | **Lock pointer on click** | `on` | on/off | Auto-locks the mouse pointer when you click the game so aim works; `Esc` releases. Turn off if you prefer to lock manually. |
 
 Aim is **framerate-independent** — it's driven by mouse velocity (px/s), so the same Sensitivity/Smoothing feel identical on a 60 Hz, 120 Hz, or 240 Hz display.
 
-> Reminder: a virtual thumbstick has a maximum deflection, and at full throw the **game** sets the turn rate. Sensitivity/Smoothing change how fast you reach and leave that ceiling, but no setting (and no KBM-on-cloud tool) can exceed it — instant mouse-style 180° flicks aren't physically possible through the Gamepad API.
+> Reminder: a virtual thumbstick has a maximum deflection, and at full throw the **game** sets the turn rate. Sensitivity/Smoothing change how fast you reach and leave that ceiling, but no setting (and no KBM-on-cloud tool) can exceed it — instant mouse-style 180° flicks aren't physically possible through the Gamepad API. If you get shot in the back and turn 180° at a leisurely controller pace, that is not a bug; that is the stick ceiling politely escorting you to the respawn screen.
 
 **Shooter starter settings:**
 
-- Sensitivity: `0.018–0.030`
-- Smoothing: `0.10–0.25`
-- Aim min: `0.10–0.18`
-- Aim curve: `0.60–0.85`
+- Look speed: `100–165%`
+- Smoothing: `10–25%`
+- Deadzone lift: `10–18%`
+- Fine aim boost: `+15–+40%`
 
 In-game, raise look sensitivity and disable aim deadzone when the game allows it. Hidden deadzones are the final boss here.
 
@@ -131,7 +131,7 @@ Current build is hackable, playable, and intentionally small. Expect xCloud chan
 
 Recent quality-of-life work: corrected diagonal left-stick speed (radial clamp so diagonals are no longer ~41% faster than cardinals), a self-hosted bundled UI font (no CDN hotlink — see [`assets/fonts/README.md`](assets/fonts/README.md)), profile import/export to file, and remap conflict warnings.
 
-`pi-coding-agent` helped develop current application state and this repo refresh on behalf of esskayesss: icon rollout, README cleanup, keybind overlay investigation, the TypeScript/Svelte rebuild, and ongoing maintenance support. Blame humans for taste. Credit robots for tireless grep.
+`pi-coding-agent` helped develop current application state and this repo refresh on behalf of esskayesss: icon rollout, README cleanup, keybind overlay investigation, the TypeScript/Svelte rebuild, and ongoing maintenance support. Specific shoutout to **gpt-5.5** for tireless grep, patient refactors, and enough controller slander to make aim assist file a complaint. Blame humans for taste; credit robots for stamina.
 
 ## Contributing
 
@@ -152,7 +152,29 @@ Before sending changes, run `npm run typecheck`, `npm run test`, and `npm run bu
 npm run zip
 ```
 
-This builds the extension and zips the `dist/` output to `padm0nk-<version>.zip` (version from `package.json`), ready to upload to a store dashboard. Privacy policy source lives at [`docs/privacy.html`](docs/privacy.html). Store dashboards may ask for a public privacy URL; host that file however you prefer.
+This zips the current `dist/` output to `padm0nk-<version>.zip`. Local builds use `package.json` as the fallback version; release builds set `PADM0NK_VERSION` from the git tag so the packaged `manifest.json` version and zip filename match the release tag.
+
+For a local release-style build:
+
+```bash
+PADM0NK_VERSION=1.2.3 npm run build
+PADM0NK_VERSION=1.2.3 npm run zip
+```
+
+`PADM0NK_VERSION` must be a Chrome extension version like `1.2.3` or `1.2.3.4`.
+
+## Releases
+
+Releases are tag-driven. Create an annotated tag and push it:
+
+```bash
+git tag -a v1.2.3 -m "Release v1.2.3"
+git push origin v1.2.3
+```
+
+The GitHub release workflow derives `PADM0NK_VERSION=1.2.3` from the tag, runs format/typecheck/tests/build, verifies `dist/manifest.json.version` matches the tag, rejects dirty release builds, zips the extension, and attaches `padm0nk-1.2.3.zip` to a GitHub Release with generated notes.
+
+Project page source lives at [`docs/index.html`](docs/index.html). It includes the local-only data statement store dashboards tend to ask for, without pretending a tiny open-source extension needs a corporate privacy microsite.
 
 ## Limitations
 
@@ -164,10 +186,10 @@ This builds the extension and zips the `dist/` output to `padm0nk-<version>.zip`
 
 ## Disclaimer
 
-padm0nk is independent software. It is not affiliated with, endorsed by, or sponsored by Microsoft. Xbox is a trademark of Microsoft Corporation. padm0nk does not collect or transmit user data; see [`docs/privacy.html`](docs/privacy.html).
+padm0nk is independent software. It is not affiliated with, endorsed by, or sponsored by Microsoft. Xbox is a trademark of Microsoft Corporation. padm0nk does not collect or transmit user data; see the local-only statement on [`docs/index.html`](docs/index.html).
 
 ## Controller diss, requested by esskayesss
 
 Controllers had good run. Respect to couch warriors, claw-grip elders, stick-drift survivors, and everyone who learned to aim by gently bullying two tiny mushrooms. But some of us want crosshair control, not thumb-based astrology. Some of us want reload on `R`, not whatever plastic rune decided today. Some of us looked at right stick acceleration and said: absolutely not, send mouse.
 
-So padm0nk walks into xCloud wearing green LEDs, drops WASD on left stick, bolts mouse aim to right stick, and tells controllers to hold this L in party chat. Is this a little cringe? Yes. Is it still cleaner than pretending stick drift is personality? Also yes.
+padm0nk walks into xCloud wearing green LEDs, drops WASD on left stick, bolts mouse aim to right stick, and tells controllers to hold this L in party chat. If someone says “skill issue,” please auto-ricochet that comment directly back to their aim-assist dependency, then ask why getting shot in the back requires turning 180 degrees at the pace of a scenic railway. Is this a little cringe? Yes. Is it still cleaner than pretending stick drift is personality? Also yes.
