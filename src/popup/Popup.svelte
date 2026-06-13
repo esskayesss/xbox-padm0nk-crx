@@ -190,11 +190,10 @@
 
 		<p class="text-pad-muted text-xs leading-snug">
 			<b class="text-pad-accent">{toggleLabel}</b> toggles in-game.
-			<b class="text-pad-accent">{helpLabel}</b> edits binds. Click game to lock aim; Esc releases.
+			<b class="text-pad-accent">{helpLabel}</b> edits binds.
 		</p>
 
 		<div class="space-y-1.5">
-			<p class="text-pad-muted text-2xs tracking-wide uppercase">Support padm0nk</p>
 			<div class="grid grid-cols-2 gap-2">
 				<button
 					type="button"

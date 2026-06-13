@@ -315,7 +315,7 @@
 				<!-- RIGHT rail -->
 				<div class="grid content-start gap-2 max-[900px]:grid-cols-2">
 					<div
-						class="text-pad-accent mb-0.5 text-xs tracking-widest uppercase max-[900px]:col-span-full"
+						class="text-pad-accent mb-0.5 text-xs tracking-widest uppercase max-[900px]:col-span-full text-right"
 					>
 						Right side
 					</div>
