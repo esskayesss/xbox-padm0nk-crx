@@ -1,12 +1,21 @@
 // Build-time version stamp. Computed once when the build config is evaluated so
 // every produced `dist/` carries a unique, human-readable marker — surfaced as
-// the manifest `version_name` (visible on the chrome://extensions card) and
-// logged by the injected runtime. Lets you confirm at a glance that a reloaded
-// extension is the build you just made, not a stale one.
+// the manifest `version_name` (visible on the chrome://extensions card). Lets
+// you confirm at a glance that a reloaded extension is the build you just made,
+// not a stale one.
 import { execSync } from 'node:child_process';
 
-/** Semantic version (also the manifest `version`). */
-export const VERSION = '1.0.0';
+function chromeVersionFromEnv(): string | null {
+	const raw = process.env.PADM0NK_VERSION;
+	if (!raw) return null;
+	if (!/^\d+\.\d+\.\d+(?:\.\d+)?$/.test(raw)) {
+		throw new Error('PADM0NK_VERSION must be a Chrome extension version like 1.2.3');
+	}
+	return raw;
+}
+
+/** Semantic version (also the manifest `version`). Release builds set PADM0NK_VERSION from git tag. */
+export const VERSION = chromeVersionFromEnv() ?? '1.0.0';
 
 function sh(cmd: string): string {
 	try {

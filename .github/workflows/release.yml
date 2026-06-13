@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Derive release version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Tag must look like v1.2.3 or v1.2.3.4; got ${GITHUB_REF_NAME}" >&2
+            exit 1
+          fi
+          echo "PADM0NK_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "ZIP_NAME=padm0nk-$VERSION.zip" >> "$GITHUB_ENV"
+
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run test
+
+      - name: Build tagged release
+        run: npm run build
+
+      - name: Verify manifest version
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync('dist/manifest.json', 'utf8'));
+          const expected = process.env.PADM0NK_VERSION;
+          if (manifest.version !== expected) {
+            throw new Error(`manifest version ${manifest.version} !== tag version ${expected}`);
+          }
+          if (/dirty/i.test(manifest.version_name || '')) {
+            throw new Error(`release build is dirty: ${manifest.version_name}`);
+          }
+          console.log(`Verified manifest ${manifest.version} (${manifest.version_name})`);
+          NODE
+
+      - name: Package extension
+        run: node scripts/zip.mjs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ZIP_NAME }}
+          path: ${{ env.ZIP_NAME }}
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: true

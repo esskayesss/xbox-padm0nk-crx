@@ -4,9 +4,10 @@ import archiver from 'archiver';
 
 const root = resolve(import.meta.dirname, '..');
 
-// Version from package.json (mirrors manifest.config.ts version).
+// Release builds pass PADM0NK_VERSION from the git tag; local dev falls back to package.json.
 const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
-const zipName = `padm0nk-${pkg.version}.zip`;
+const version = process.env.PADM0NK_VERSION || pkg.version;
+const zipName = `padm0nk-${version}.zip`;
 
 const out = createWriteStream(resolve(root, zipName));
 const archive = archiver('zip', { zlib: { level: 9 } });
