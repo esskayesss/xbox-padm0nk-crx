@@ -42,7 +42,7 @@ export const CONTROLLER_ACTIONS: readonly ControllerAction[] = [
 		label: 'Up',
 		group: GROUP_TITLES.leftStick,
 		action: { t: 'a', a: 1, v: -1 },
-		icon: 'left-stick.svg',
+		icon: 'left-stick-up.svg',
 		defaultInputs: ['KeyW'],
 	},
 	{
@@ -50,7 +50,7 @@ export const CONTROLLER_ACTIONS: readonly ControllerAction[] = [
 		label: 'Down',
 		group: GROUP_TITLES.leftStick,
 		action: { t: 'a', a: 1, v: 1 },
-		icon: 'left-stick.svg',
+		icon: 'left-stick-down.svg',
 		defaultInputs: ['KeyS'],
 	},
 	{
@@ -58,7 +58,7 @@ export const CONTROLLER_ACTIONS: readonly ControllerAction[] = [
 		label: 'Left',
 		group: GROUP_TITLES.leftStick,
 		action: { t: 'a', a: 0, v: -1 },
-		icon: 'left-stick.svg',
+		icon: 'left-stick-left.svg',
 		defaultInputs: ['KeyA'],
 	},
 	{
@@ -66,7 +66,7 @@ export const CONTROLLER_ACTIONS: readonly ControllerAction[] = [
 		label: 'Right',
 		group: GROUP_TITLES.leftStick,
 		action: { t: 'a', a: 0, v: 1 },
-		icon: 'left-stick.svg',
+		icon: 'left-stick-right.svg',
 		defaultInputs: ['KeyD'],
 	},
 
@@ -216,6 +216,25 @@ export const CONTROLLER_ACTIONS: readonly ControllerAction[] = [
 		defaultInputs: ['ArrowRight', 'Digit4'],
 	},
 ];
+
+/**
+ * True when every remappable controller action has at least one bound input.
+ * Stick/aim info rows are mouse/keyboard-driven and not part of this check
+ * (only registry actions with defaultInputs are remappable).
+ */
+export function allBindsConfigured(bindings: Bindings): boolean {
+	const bound = new Set<string>();
+	for (const id of Object.keys(bindings)) {
+		const a = bindings[id];
+		if (a == null) continue;
+		bound.add(a.t === 'b' ? `b:${a.i}` : `a:${a.a}:${a.v}`);
+	}
+	return CONTROLLER_ACTIONS.every((entry) => {
+		const a = entry.action;
+		const key = a.t === 'b' ? `b:${a.i}` : `a:${a.a}:${a.v}`;
+		return bound.has(key);
+	});
+}
 
 /** Flatten the registry's defaultInputs -> action into a Bindings map. */
 export function buildDefaultBindings(): Bindings {

@@ -17,6 +17,7 @@
 	// matched to the legacy CSS — no raw hex.
 	import { prettyInput } from '../../core/labels';
 	import { comboLabel } from '../../core/combos';
+	import { allBindsConfigured } from '../../core/controller-actions';
 	import type { Action, Bindings, Combo } from '../../core/types';
 
 	interface Props {
@@ -155,6 +156,9 @@
 
 	// Second line of defense (see shadow.ts CLICK-SAFETY): swallow on the panel.
 	const stop = (e: Event) => e.stopPropagation();
+
+	// Warn when one or more controller actions have no input bound.
+	const bindsComplete = $derived(allBindsConfigured(bindings));
 </script>
 
 {#snippet bindEditor(row: Row, compact = false)}
@@ -235,6 +239,14 @@
 			aria-label="padm0nk binds"
 			tabindex="-1"
 		>
+			{#if !bindsComplete}
+				<div
+					class="bg-pad-danger text-pad-bg -mx-5 -mt-5 mb-4 px-5 py-2 text-center text-sm font-semibold tracking-wide uppercase"
+					role="alert"
+				>
+					Some controls are unmapped — bind every action below for full coverage
+				</div>
+			{/if}
 			<!-- Header: brand orb + title/subtitle | shortcut legends -->
 			<div
 				class="mb-4 flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start"

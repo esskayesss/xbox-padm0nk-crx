@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	CONTROLLER_ACTIONS,
+	allBindsConfigured,
 	buildDefaultBindings,
 	groupsForOptions,
 } from '../src/core/controller-actions';
@@ -26,6 +27,24 @@ describe('controller-actions registry', () => {
 	it('action ids are unique', () => {
 		const ids = CONTROLLER_ACTIONS.map((a) => a.id);
 		expect(new Set(ids).size).toBe(ids.length);
+	});
+
+	it('allBindsConfigured is true for the default bindings', () => {
+		expect(allBindsConfigured(DEFAULT_CONFIG.bindings)).toBe(true);
+	});
+
+	it('allBindsConfigured is false when an action loses every input', () => {
+		const bindings = { ...buildDefaultBindings() };
+		// Space is the only default input for A; removing it leaves A unmapped.
+		delete bindings['Space'];
+		expect(allBindsConfigured(bindings)).toBe(false);
+	});
+
+	it('allBindsConfigured stays true if an action keeps one of several inputs', () => {
+		const bindings = { ...buildDefaultBindings() };
+		// D-pad up has ArrowUp + Digit1; dropping one keeps it mapped.
+		delete bindings['Digit1'];
+		expect(allBindsConfigured(bindings)).toBe(true);
 	});
 
 	it('groupsForOptions includes the mouse-driven Aim info group with no items', () => {

@@ -2,91 +2,52 @@
 	// Popup command deck: quick power state + aim tuning. Persists through
 	// shared/storage.ts; external edits live-refresh through onConfigChanged.
 	import { onMount } from 'svelte';
+	import {
+		AIM_CONTROLS,
+		aimConfigValue,
+		aimDisplayFill,
+		aimDisplayValue,
+	} from '../core/aim-settings';
 	import { DEFAULT_CONFIG } from '../core/config';
 	import { comboLabel } from '../core/combos';
 	import { readConfig, writeConfig, onConfigChanged } from '../shared/storage';
 	import type { Config } from '../core/types';
-
-	const SLIDERS = [
-		{
-			key: 'sensitivity',
-			label: 'Sensitivity',
-			hint: 'Mouse → stick gain',
-			min: 0.002,
-			max: 0.05,
-			step: 0.001,
-			dp: 3,
-		},
-		{
-			key: 'smoothing',
-			label: 'Smoothing',
-			hint: 'Aim inertia',
-			min: 0,
-			max: 0.9,
-			step: 0.05,
-			dp: 2,
-		},
-		{
-			key: 'aimMin',
-			label: 'Aim min',
-			hint: 'Deadzone lift',
-			min: 0,
-			max: 0.35,
-			step: 0.01,
-			dp: 2,
-		},
-		{
-			key: 'aimCurve',
-			label: 'Aim curve',
-			hint: 'Fine control shape',
-			min: 0.35,
-			max: 1.5,
-			step: 0.05,
-			dp: 2,
-		},
-	] as const;
 
 	const TOGGLES = [
 		{ key: 'invertY', label: 'Invert Y', hint: 'Flip vertical aim' },
 		{ key: 'lockPointerOnClick', label: 'Aim lock', hint: 'Click game to capture mouse' },
 	] as const;
 
-	const iconUrl = (() => {
-		try {
-			return chrome.runtime?.getURL?.('icons/padm0nk.png') ?? '';
-		} catch {
-			return '';
-		}
-	})();
+	const GITHUB_SPONSORS_URL = 'https://github.com/sponsors/esskayesss';
+	const BUY_ME_COFFEE_URL = 'https://buymeacoffee.com/esskayesss';
 
 	let config = $state<Config>(structuredClone(DEFAULT_CONFIG));
+	let saveTimer: ReturnType<typeof setTimeout> | null = null;
 	const toggleLabel = $derived(comboLabel(config.toggleCombo));
 	const helpLabel = $derived(comboLabel(config.helpCombo));
 	const stateLabel = $derived(config.enabled ? 'armed' : 'offline');
 
 	onMount(() => {
 		void readConfig().then((c) => (config = c));
-		return onConfigChanged((c) => (config = c));
+		const unsub = onConfigChanged((c) => (config = c));
+		return () => {
+			unsub();
+			if (saveTimer) clearTimeout(saveTimer);
+		};
 	});
 
 	function save(): void {
 		void writeConfig($state.snapshot(config));
 	}
 
-	function sliderFor(key: (typeof SLIDERS)[number]['key']): (typeof SLIDERS)[number] {
-		return SLIDERS.find((s) => s.key === key)!;
+	function queueSave(): void {
+		if (saveTimer) clearTimeout(saveTimer);
+		saveTimer = setTimeout(save, 80);
 	}
 
-	function clampNumber(key: (typeof SLIDERS)[number]['key'], raw: string): number {
-		const s = sliderFor(key);
-		const parsed = Number.parseFloat(raw);
-		const value = Number.isFinite(parsed) ? parsed : config[key];
-		return Math.min(s.max, Math.max(s.min, value));
-	}
-
-	function setNumber(key: (typeof SLIDERS)[number]['key'], raw: string): void {
-		config[key] = clampNumber(key, raw);
-		save();
+	function setNumber(key: (typeof AIM_CONTROLS)[number]['key'], raw: string): void {
+		config[key] = aimConfigValue(key, raw);
+		queueSave();
 	}
 
 	function setBool(key: 'enabled' | 'invertY' | 'lockPointerOnClick', value: boolean): void {
@@ -108,50 +69,32 @@
 	function openOptions(): void {
 		chrome.runtime.openOptionsPage();
 	}
+
+	function openUrl(url: string): void {
+		chrome.tabs?.create?.({ url });
+	}
 </script>
 
 <main class="bg-pad-bg text-pad-text w-70 overflow-hidden p-2 font-sans text-sm leading-tight">
 	<section class="pad-panel-bg border-pad-accent/40 rounded-md border p-3">
-		<header class="flex items-start gap-3">
+		<header class="flex items-center justify-between gap-2">
+			<div class="text-xl font-semibold tracking-wide uppercase">padm0nk</div>
 			<span
-				class="pad-orb grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm p-1.5"
+				class="rounded-sm border px-2 py-0.5 text-2xs tracking-widest uppercase"
+				class:border-pad-accent={config.enabled}
+				class:border-pad-border={!config.enabled}
+				class:text-pad-accent={config.enabled}
+				class:text-pad-muted={!config.enabled}
 			>
-				{#if iconUrl}
-					<img
-						src={iconUrl}
-						alt="padm0nk"
-						class="pad-icon-glow h-full w-full object-contain"
-						class:grayscale={!config.enabled}
-						class:opacity-60={!config.enabled}
-					/>
-				{:else}
-					<span class="text-pad-accent text-lg font-bold" aria-hidden="true">p</span>
-				{/if}
+				{stateLabel}
 			</span>
-			<div class="min-w-0 flex-1">
-				<div class="flex items-center justify-between gap-2">
-					<div class="text-xl font-semibold tracking-wide uppercase">padm0nk</div>
-					<span
-						class="rounded-sm border px-2 py-0.5 text-2xs tracking-widest uppercase"
-						class:border-pad-accent={config.enabled}
-						class:border-pad-border={!config.enabled}
-						class:text-pad-accent={config.enabled}
-						class:text-pad-muted={!config.enabled}
-					>
-						{stateLabel}
-					</span>
-				</div>
-				<p class="text-pad-muted mt-1 text-xs leading-tight">
-					Keyboard + mouse translated into a virtual Xbox pad.
-				</p>
-			</div>
 		</header>
 
 		<div class="mt-3 grid grid-cols-3 gap-2">
 			<label
-				class="pad-surface flex cursor-pointer items-center justify-between gap-2 rounded-sm border p-2"
+				class="pad-surface flex cursor-pointer flex-col items-center justify-center gap-1 rounded-sm border p-2 text-center"
 			>
-				<span class="text-pad-text text-xs font-semibold">Enabled</span>
+				<span class="text-pad-text text-xs font-semibold leading-tight">Enabled</span>
 				<input
 					type="checkbox"
 					class="accent-pad-accent"
@@ -161,9 +104,9 @@
 			</label>
 			{#each TOGGLES as t (t.key)}
 				<label
-					class="pad-surface flex cursor-pointer items-center justify-between gap-2 rounded-sm border p-2"
+					class="pad-surface flex cursor-pointer flex-col items-center justify-center gap-1 rounded-sm border p-2 text-center"
 				>
-					<span class="text-pad-text text-xs font-semibold">{t.label}</span>
+					<span class="text-pad-text text-xs font-semibold leading-tight">{t.label}</span>
 					<input
 						type="checkbox"
 						class="accent-pad-accent"
@@ -187,33 +130,44 @@
 					Reset
 				</button>
 			</div>
-			{#each SLIDERS as s (s.key)}
-				<label class="grid gap-1">
+			{#each AIM_CONTROLS as s (s.key)}
+				<div class="grid gap-1">
 					<div class="flex items-baseline justify-between gap-2">
 						<span>
-							<span class="block text-xs font-semibold">{s.label}</span>
+							<label
+								id={`popup-${s.key}-label`}
+								for={`popup-${s.key}-range`}
+								class="block text-xs font-semibold"
+							>
+								{s.label}
+							</label>
 							<span class="text-pad-muted text-2xs uppercase tracking-wide">{s.hint}</span>
 						</span>
 						<input
 							type="number"
 							class="pad-number w-16 rounded-sm px-1.5 py-0.5 text-right font-mono text-xs"
+							aria-label={`${s.label} value`}
 							min={s.min}
 							max={s.max}
 							step={s.step}
-							value={config[s.key].toFixed(s.dp)}
+							value={aimDisplayValue(config, s.key).toFixed(s.dp)}
 							onchange={(e) => setNumber(s.key, e.currentTarget.value)}
 						/>
 					</div>
 					<input
+						id={`popup-${s.key}-range`}
 						type="range"
 						class="pad-range w-full"
+						aria-labelledby={`popup-${s.key}-label`}
+						style={`--pad-fill: ${aimDisplayFill(config, s.key)}`}
 						min={s.min}
 						max={s.max}
 						step={s.step}
-						value={config[s.key]}
+						value={aimDisplayValue(config, s.key)}
 						oninput={(e) => setNumber(s.key, e.currentTarget.value)}
+						onchange={save}
 					/>
-				</label>
+				</div>
 			{/each}
 		</section>
 
@@ -238,5 +192,22 @@
 			<b class="text-pad-accent">{toggleLabel}</b> toggles in-game.
 			<b class="text-pad-accent">{helpLabel}</b> edits binds. Click game to lock aim; Esc releases.
 		</p>
+
+		<div class="grid grid-cols-2 gap-2">
+			<button
+				type="button"
+				class="bg-pad-sponsor text-pad-sponsor-soft hover:bg-pad-sponsor-strong border-pad-sponsor/70 cursor-pointer rounded-sm border px-2 py-2 text-xs font-black tracking-wide uppercase"
+				onclick={() => openUrl(GITHUB_SPONSORS_URL)}
+			>
+				❤ GitHub
+			</button>
+			<button
+				type="button"
+				class="border-pad-coffee-border bg-pad-coffee text-pad-coffee-text hover:bg-pad-coffee-hover cursor-pointer rounded-sm border px-2 py-2 text-xs font-black tracking-wide uppercase"
+				onclick={() => openUrl(BUY_ME_COFFEE_URL)}
+			>
+				☕ Coffee
+			</button>
+		</div>
 	</section>
 </main>

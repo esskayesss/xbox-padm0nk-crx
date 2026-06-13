@@ -21,6 +21,7 @@ import {
 	createGamepadState,
 } from '../core/gamepad-state';
 import { step } from '../core/mapper';
+import { allBindsConfigured } from '../core/controller-actions';
 import type { Action, Config } from '../core/types';
 import {
 	mountHud,
@@ -101,6 +102,7 @@ function main(): void {
 		helpCombo: config.helpCombo,
 		enabled: config.enabled,
 		inGame: isInGame(),
+		bindsComplete: allBindsConfigured(config.bindings),
 	});
 	const overlayProps = (): OverlayProps => ({
 		open: overlayOpen,

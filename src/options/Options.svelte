@@ -9,7 +9,13 @@
 	// Persistence flows through src/shared/storage.ts. Tier-4 additions: file
 	// import/export and a remap-conflict warning when an input is reassigned.
 	import { onMount } from 'svelte';
-	import { groupsForOptions } from '../core/controller-actions';
+	import {
+		AIM_CONTROLS,
+		aimConfigValue,
+		aimDisplayFill,
+		aimDisplayValue,
+	} from '../core/aim-settings';
+	import { groupsForOptions, GROUP_TITLES, allBindsConfigured } from '../core/controller-actions';
 	import { DEFAULT_CONFIG, normalizeConfig } from '../core/config';
 	import { comboFromEvent, comboLabel } from '../core/combos';
 	import { prettyInput } from '../core/labels';
@@ -17,41 +23,21 @@
 	import type { Action, Config } from '../core/types';
 
 	const groups = groupsForOptions();
+	const GITHUB_SPONSORS_URL = 'https://github.com/sponsors/esskayesss';
+	const BUY_ME_COFFEE_URL = 'https://buymeacoffee.com/esskayesss';
 
-	const SLIDERS = [
-		{
-			key: 'sensitivity',
-			label: 'Mouse sensitivity (→ right stick)',
-			min: 0.002,
-			max: 0.05,
-			step: 0.001,
-			dp: 3,
-		},
-		{
-			key: 'smoothing',
-			label: 'Smoothing (0 sharp → 0.9 floaty)',
-			min: 0,
-			max: 0.9,
-			step: 0.05,
-			dp: 2,
-		},
-		{
-			key: 'aimMin',
-			label: 'Aim minimum (deadzone compensation)',
-			min: 0,
-			max: 0.35,
-			step: 0.01,
-			dp: 2,
-		},
-		{
-			key: 'aimCurve',
-			label: 'Aim curve (<1 boosts fine aim)',
-			min: 0.35,
-			max: 1.5,
-			step: 0.05,
-			dp: 2,
-		},
-	] as const;
+	/** Groups whose inputs are fixed and cannot be rebound (display-only). */
+	const FIXED_GROUPS = new Set<string>([GROUP_TITLES.leftStick]);
+	const isFixedGroup = (title: string): boolean => FIXED_GROUPS.has(title);
+
+	/** Resolve a bind-icon asset URL for the options (extension) page. */
+	function iconUrl(icon: string): string {
+		try {
+			return chrome.runtime?.getURL?.(`assets/bind-icons/${icon}`) ?? '';
+		} catch {
+			return '';
+		}
+	}
 
 	let config = $state<Config>(structuredClone(DEFAULT_CONFIG));
 
@@ -68,8 +54,10 @@
 
 	const toggleLabel = $derived(comboLabel(config.toggleCombo));
 	const helpLabel = $derived(comboLabel(config.helpCombo));
+	const bindsComplete = $derived(allBindsConfigured(config.bindings));
 
 	let savedTimer: ReturnType<typeof setTimeout> | null = null;
+	let saveQueueTimer: ReturnType<typeof setTimeout> | null = null;
 	let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 	let fileInput: HTMLInputElement;
 
@@ -110,6 +98,11 @@
 	function save(): void {
 		void writeConfig($state.snapshot(config));
 		flashSaved();
+	}
+
+	function queueSave(): void {
+		if (saveQueueTimer) clearTimeout(saveQueueTimer);
+		saveQueueTimer = setTimeout(save, 80);
 	}
 
 	// ---- capture ----
@@ -182,6 +175,7 @@
 		window.addEventListener('wheel', onWheel, { capture: true, passive: false });
 		return () => {
 			unsub();
+			if (saveQueueTimer) clearTimeout(saveQueueTimer);
 			window.removeEventListener('keydown', onKey, true);
 			window.removeEventListener('mousedown', onMouse, true);
 			window.removeEventListener('wheel', onWheel, true);
@@ -189,20 +183,9 @@
 	});
 
 	// ---- settings ----
-	function sliderFor(key: (typeof SLIDERS)[number]['key']): (typeof SLIDERS)[number] {
-		return SLIDERS.find((s) => s.key === key)!;
-	}
-
-	function clampNumber(key: (typeof SLIDERS)[number]['key'], raw: string): number {
-		const s = sliderFor(key);
-		const parsed = Number.parseFloat(raw);
-		const value = Number.isFinite(parsed) ? parsed : config[key];
-		return Math.min(s.max, Math.max(s.min, value));
-	}
-
-	function setNumber(key: (typeof SLIDERS)[number]['key'], raw: string): void {
-		config[key] = clampNumber(key, raw);
-		save();
+	function setNumber(key: (typeof AIM_CONTROLS)[number]['key'], raw: string): void {
+		config[key] = aimConfigValue(key, raw);
+		queueSave();
 	}
 	function setBool(key: 'invertY' | 'lockPointerOnClick', value: boolean): void {
 		config[key] = value;
@@ -259,8 +242,37 @@
 </script>
 
 <div
-	class="bg-pad-bg text-pad-text mx-auto min-h-screen max-w-3xl px-5 pt-7 pb-16 font-sans text-sm leading-relaxed"
+	class="text-pad-text mx-auto min-h-screen max-w-3xl px-5 pt-7 pb-16 font-sans text-sm leading-relaxed"
 >
+	<section
+		class="bg-pad-sponsor text-pad-sponsor-soft border-pad-sponsor-strong mb-4 flex flex-col gap-3 rounded-md border px-4 py-3 shadow-pad-hud sm:flex-row sm:items-center sm:justify-between"
+	>
+		<div>
+			<div class="text-sm font-black tracking-wide uppercase">❤ Support padm0nk</div>
+			<div class="text-pad-sponsor-soft/85 text-xs">
+				Help keep the extension free, open source, and actively maintained.
+			</div>
+		</div>
+		<div class="flex flex-wrap gap-2">
+			<a
+				href={GITHUB_SPONSORS_URL}
+				target="_blank"
+				rel="noreferrer"
+				class="bg-pad-sponsor-soft text-pad-sponsor-strong rounded-sm px-3 py-1 text-xs font-black uppercase hover:brightness-95"
+			>
+				GitHub Sponsors
+			</a>
+			<a
+				href={BUY_ME_COFFEE_URL}
+				target="_blank"
+				rel="noreferrer"
+				class="border-pad-coffee-border bg-pad-coffee text-pad-coffee-text hover:bg-pad-coffee-hover rounded-sm border px-3 py-1 text-xs font-black uppercase"
+			>
+				Buy Me a Coffee
+			</a>
+		</div>
+	</section>
+
 	<h1 class="text-pad-accent m-0 mb-1 flex items-center gap-2 text-xl">
 		🎮 padm0nk Configuration
 		<span
@@ -274,6 +286,16 @@
 		mouse button you want to bind. Click a chip's <b class="text-pad-danger">×</b> to unbind. Changes
 		apply live — just reload the xCloud tab.
 	</p>
+
+	<!-- Coverage warning: one or more controller actions have no input bound. -->
+	{#if !bindsComplete}
+		<div
+			role="alert"
+			class="bg-pad-danger text-pad-bg mb-2 rounded-md px-3 py-2 text-sm font-semibold"
+		>
+			⚠ Some controls are unmapped — bind every action below for full coverage.
+		</div>
+	{/if}
 
 	<!-- Conflict warning (Tier-4): non-blocking inline notice. -->
 	{#if conflictNotice}
@@ -298,39 +320,64 @@
 		{#if group.items.length}
 			<div class="grid grid-cols-field items-center gap-x-3.5 gap-y-2">
 				{#each group.items as item (item.id)}
-					<div class="text-pad-text/80">{item.label}</div>
-					<div class="flex flex-wrap items-center gap-1.5">
-						{#each inputsFor(item.action) as id (id)}
-							<span
-								class="bg-pad-chip border-pad-border inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm"
-							>
-								<b class="text-pad-key font-semibold">{prettyInput(id)}</b>
-								<button
-									type="button"
-									class="chip-x text-pad-danger cursor-pointer font-bold"
-									title="Unbind"
-									aria-label="Unbind {prettyInput(id)}"
-									onclick={() => unbind(id)}>×</button
-								>
-							</span>
-						{/each}
-						<button
-							type="button"
-							class="cursor-pointer rounded-md border border-dashed px-2.5 py-0.5 text-sm {isCapturing(
-								capturing,
-								'binding',
-								item.id,
-							)
-								? 'animate-pulse border-amber-500 bg-amber-950/40 text-amber-300'
-								: 'border-pad-accent/40 bg-pad-green/10 text-pad-accent'}"
-							onclick={() =>
-								isCapturing(capturing, 'binding', item.id)
-									? cancelCapture()
-									: startCapture({ kind: 'binding', action: item.action, id: item.id })}
-						>
-							{isCapturing(capturing, 'binding', item.id) ? 'press input… (Esc cancels)' : '＋ Add'}
-						</button>
+					<div class="text-pad-text/80 flex items-center gap-2">
+						{#if item.icon}
+							<img
+								src={iconUrl(item.icon)}
+								alt=""
+								aria-hidden="true"
+								class="pad-icon-glow size-5 shrink-0 object-contain"
+							/>
+						{/if}
+						<span>{item.label}</span>
 					</div>
+					{#if isFixedGroup(group.title)}
+						<div class="flex flex-wrap items-center gap-1.5">
+							{#each inputsFor(item.action) as id (id)}
+								<span
+									class="bg-pad-chip border-pad-border inline-flex items-center rounded-md border px-2 py-0.5 text-sm"
+								>
+									<b class="text-pad-key font-semibold">{prettyInput(id)}</b>
+								</span>
+							{/each}
+							<span class="text-pad-muted text-2xs uppercase tracking-wide">fixed</span>
+						</div>
+					{:else}
+						<div class="flex flex-wrap items-center gap-1.5">
+							{#each inputsFor(item.action) as id (id)}
+								<span
+									class="bg-pad-chip border-pad-border inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm"
+								>
+									<b class="text-pad-key font-semibold">{prettyInput(id)}</b>
+									<button
+										type="button"
+										class="chip-x text-pad-danger cursor-pointer font-bold"
+										title="Unbind"
+										aria-label="Unbind {prettyInput(id)}"
+										onclick={() => unbind(id)}>×</button
+									>
+								</span>
+							{/each}
+							<button
+								type="button"
+								class="cursor-pointer rounded-md border border-dashed px-2.5 py-0.5 text-sm {isCapturing(
+									capturing,
+									'binding',
+									item.id,
+								)
+									? 'animate-pulse border-amber-500 bg-amber-950/40 text-amber-300'
+									: 'border-pad-accent/40 bg-pad-green/10 text-pad-accent'}"
+								onclick={() =>
+									isCapturing(capturing, 'binding', item.id)
+										? cancelCapture()
+										: startCapture({ kind: 'binding', action: item.action, id: item.id })}
+							>
+								{isCapturing(capturing, 'binding', item.id)
+									? 'press input… (Esc cancels)'
+									: '＋ Add'}
+							</button>
+						</div>
+					{/if}
 				{/each}
 			</div>
 		{/if}
@@ -342,50 +389,66 @@
 	>
 		Mouse &amp; behaviour
 	</h2>
-	<div class="flex flex-col gap-1">
-		{#each SLIDERS as s (s.key)}
-			<label class="my-1 flex max-w-xl items-center gap-3">
-				<span class="min-w-56 flex-1">{s.label}</span>
+	<div class="grid grid-cols-field items-center gap-x-3.5 gap-y-2">
+		{#each AIM_CONTROLS as s (s.key)}
+			<label id={`options-${s.key}-label`} for={`options-${s.key}-range`} class="text-pad-text/80">
+				{s.label}
+			</label>
+			<div class="flex items-center gap-3">
 				<input
+					id={`options-${s.key}-range`}
 					type="range"
 					class="pad-range w-full"
+					aria-labelledby={`options-${s.key}-label`}
+					style={`--pad-fill: ${aimDisplayFill(config, s.key)}`}
 					min={s.min}
 					max={s.max}
 					step={s.step}
-					value={config[s.key]}
+					value={aimDisplayValue(config, s.key)}
 					oninput={(e) => setNumber(s.key, e.currentTarget.value)}
+					onchange={save}
 				/>
 				<input
 					type="number"
-					class="pad-number w-20 rounded-sm px-2 py-1 text-right font-mono text-sm"
+					class="pad-number w-20 shrink-0 rounded-sm px-2 py-1 text-right font-mono text-sm"
+					aria-label={`${s.label} value`}
 					min={s.min}
 					max={s.max}
 					step={s.step}
-					value={config[s.key].toFixed(s.dp)}
+					value={aimDisplayValue(config, s.key).toFixed(s.dp)}
 					onchange={(e) => setNumber(s.key, e.currentTarget.value)}
 				/>
-			</label>
+			</div>
 		{/each}
-		<label class="my-1 flex max-w-md items-center justify-between gap-3">
-			<span>Invert Y axis</span>
+
+		<label id="options-invertY-label" for="options-invertY" class="text-pad-text/80"
+			>Invert Y axis</label
+		>
+		<div>
 			<input
+				id="options-invertY"
 				type="checkbox"
 				class="accent-pad-accent"
 				checked={config.invertY}
 				onchange={(e) => setBool('invertY', e.currentTarget.checked)}
 			/>
+		</div>
+
+		<label id="options-lockPointer-label" for="options-lockPointer" class="text-pad-text/80">
+			Lock pointer on click (aim)
 		</label>
-		<label class="my-1 flex max-w-md items-center justify-between gap-3">
-			<span>Lock pointer on click (aim)</span>
+		<div>
 			<input
+				id="options-lockPointer"
 				type="checkbox"
 				class="accent-pad-accent"
 				checked={config.lockPointerOnClick}
 				onchange={(e) => setBool('lockPointerOnClick', e.currentTarget.checked)}
 			/>
-		</label>
-		<label class="my-1 flex max-w-md items-center justify-between gap-3">
-			<span>Toggle on/off key combo</span>
+		</div>
+
+		<div class="text-pad-text/80">Toggle on/off key combo</div>
+		<div>
 			<button
 				type="button"
 				class="cursor-pointer rounded-md border border-dashed px-2.5 py-0.5 text-sm {isCapturing(
@@ -399,9 +462,10 @@
 			>
 				{isCapturing(capturing, 'toggle') ? 'press combo… (Esc cancels)' : toggleLabel}
 			</button>
-		</label>
-		<label class="my-1 flex max-w-md items-center justify-between gap-3">
-			<span>Show keybinds combo</span>
+		</div>
+
+		<div class="text-pad-text/80">Show keybinds combo</div>
+		<div>
 			<button
 				type="button"
 				class="cursor-pointer rounded-md border border-dashed px-2.5 py-0.5 text-sm {isCapturing(
@@ -415,7 +479,7 @@
 			>
 				{isCapturing(capturing, 'help') ? 'press combo… (Esc cancels)' : helpLabel}
 			</button>
-		</label>
+		</div>
 	</div>
 
 	<!-- Import / Export -->

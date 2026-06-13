@@ -77,6 +77,8 @@ export type HudProps = {
 	enabled: boolean;
 	/** True on an active game session (xbox.com /play/launch/...) — fades the HUD. */
 	inGame: boolean;
+	/** False when one or more controller actions have no input bound. */
+	bindsComplete: boolean;
 };
 
 export type OverlayProps = {
