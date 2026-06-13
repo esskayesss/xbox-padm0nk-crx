@@ -5,3 +5,6 @@ dist/
 *.zip
 .vscode/
 .idea/
+
+# local scratch: junk, screenshots, legacy reference (retired runtime)
+.local/
