@@ -1,5 +1,6 @@
 // Default configuration and defensive normalization.
 
+import { AIM_LIMITS } from './aim-settings';
 import { buildDefaultBindings } from './controller-actions';
 import type { Action, Bindings, Combo, Config } from './types';
 
@@ -96,10 +97,25 @@ export function normalizeConfig(raw: unknown): Config {
 
 	return {
 		enabled: bool(src.enabled, DEFAULT_CONFIG.enabled),
-		sensitivity: num(src.sensitivity, DEFAULT_CONFIG.sensitivity, 0.002, 0.05),
-		smoothing: num(src.smoothing, DEFAULT_CONFIG.smoothing, 0, 0.95),
-		aimMin: num(src.aimMin, DEFAULT_CONFIG.aimMin, 0, 0.5),
-		aimCurve: num(src.aimCurve, DEFAULT_CONFIG.aimCurve, 0.25, 2),
+		sensitivity: num(
+			src.sensitivity,
+			DEFAULT_CONFIG.sensitivity,
+			AIM_LIMITS.sensitivity.min,
+			AIM_LIMITS.sensitivity.max,
+		),
+		smoothing: num(
+			src.smoothing,
+			DEFAULT_CONFIG.smoothing,
+			AIM_LIMITS.smoothing.min,
+			AIM_LIMITS.smoothing.max,
+		),
+		aimMin: num(src.aimMin, DEFAULT_CONFIG.aimMin, AIM_LIMITS.aimMin.min, AIM_LIMITS.aimMin.max),
+		aimCurve: num(
+			src.aimCurve,
+			DEFAULT_CONFIG.aimCurve,
+			AIM_LIMITS.aimCurve.min,
+			AIM_LIMITS.aimCurve.max,
+		),
 		invertY: bool(src.invertY, DEFAULT_CONFIG.invertY),
 		lockPointerOnClick: bool(src.lockPointerOnClick, DEFAULT_CONFIG.lockPointerOnClick),
 		toggleKey,
