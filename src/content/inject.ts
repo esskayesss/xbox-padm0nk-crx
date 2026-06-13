@@ -21,7 +21,7 @@ import {
 	createGamepadState,
 } from '../core/gamepad-state';
 import { step } from '../core/mapper';
-import type { Config } from '../core/types';
+import type { Action, Config } from '../core/types';
 import {
 	mountHud,
 	mountOverlay,
@@ -37,10 +37,6 @@ declare global {
 		__padm0nkInstalled?: boolean;
 	}
 }
-
-// Injected at build time by Vite `define` (see vite.config.ts). Identifies the
-// exact build so console logs confirm which version is actually running.
-declare const __BUILD_STAMP__: string;
 
 // 1. Install guard — never double-install in one world.
 if (!window.__padm0nkInstalled) {
@@ -77,8 +73,8 @@ function main(): void {
 			enumerable: true,
 			value: override,
 		});
-	} catch (e) {
-		console.warn('[padm0nk] failed to override getGamepads', e);
+	} catch {
+		/* page refused getGamepads override */
 	}
 
 	// 4. Per-frame mapper tick. Step every frame so right-stick smoothing decays
@@ -116,6 +112,8 @@ function main(): void {
 		toggleCombo: config.toggleCombo,
 		helpCombo: config.helpCombo,
 		onClose: closeOverlay,
+		onBind: bindInOverlay,
+		onUnbind: unbindInOverlay,
 	});
 
 	function mountUi(): void {
@@ -191,6 +189,7 @@ function main(): void {
 			}
 		}
 		refreshUi();
+		persistEnabled();
 	}
 	// Scroll-lock the page while the overlay is open (Bug: page scrolled behind
 	// the modal). Saves + restores the prior inline overflow on <html> and <body>.
@@ -237,6 +236,25 @@ function main(): void {
 	}
 	function closeOverlay(): void {
 		setOverlay(false);
+	}
+	function persistEnabled(): void {
+		window.postMessage({ __padm0nk: 'set-enabled', enabled: config.enabled }, '*');
+	}
+	function bindInOverlay(action: Action, inputId: string): void {
+		const next: Config = {
+			...config,
+			bindings: { ...config.bindings, [inputId]: { ...action } },
+		};
+		config = normalizeConfig(next);
+		window.postMessage({ __padm0nk: 'bind', action, inputId }, '*');
+		refreshUi();
+	}
+	function unbindInOverlay(inputId: string): void {
+		const bindings = { ...config.bindings };
+		delete bindings[inputId];
+		config = normalizeConfig({ ...config, bindings });
+		window.postMessage({ __padm0nk: 'unbind', inputId }, '*');
+		refreshUi();
 	}
 
 	// 7. Config bridge (isolated world → MAIN). Asset URLs arrive ONLY here.
@@ -290,8 +308,4 @@ function main(): void {
 		clearInputs: () => clearInputs(state),
 	};
 	installInputCapture(ctrl);
-
-	console.log(
-		`[padm0nk] installed (build ${__BUILD_STAMP__}) — keyboard+mouse → virtual Xbox controller`,
-	);
 }

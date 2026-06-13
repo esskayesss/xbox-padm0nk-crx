@@ -14,8 +14,9 @@
 //   "Bahnschrift", "Segoe UI", system-ui, sans-serif
 // See assets/fonts/README.md.
 
-import { onConfigChanged, readConfig } from '../shared/storage';
-import type { Config } from '../core/types';
+import { normalizeConfig } from '../core/config';
+import { onConfigChanged, readConfig, writeConfig } from '../shared/storage';
+import type { Action, Config } from '../core/types';
 
 interface BridgePayload {
 	__padm0nk: 'config';
@@ -37,7 +38,6 @@ function getURL(path: string): string {
 
 // Last config we posted — replayed when MAIN sends a `hello` (handshake below).
 let lastConfig: Config | Record<string, never> = {};
-let loggedUrls = false;
 
 /** Post config + freshly-resolved asset URLs to the MAIN world. */
 function post(config: Config | Record<string, never>): void {
@@ -51,16 +51,6 @@ function post(config: Config | Record<string, never>): void {
 		// NEW (Bug 6): bundled font, no longer hotlinked from the xbox CDN.
 		fontUrl: getURL('assets/fonts/bahnschrift.woff'),
 	};
-	// One-time diagnostic so a human can confirm the extension asset URLs resolve
-	// (empty here would mean chrome.runtime.getURL failed / WAR misconfigured).
-	if (!loggedUrls) {
-		loggedUrls = true;
-		console.log('[padm0nk] bridge asset URLs', {
-			icon: payload.iconUrl,
-			controller: payload.controllerUrl,
-			bindIconBase: payload.bindIconBase,
-		});
-	}
 	window.postMessage(payload, '*');
 }
 
@@ -72,10 +62,51 @@ function post(config: Config | Record<string, never>): void {
 // depend on storage, so we post them immediately too (before readConfig).
 post({});
 
+function isAction(v: unknown): v is Action {
+	if (!v || typeof v !== 'object') return false;
+	const a = v as Record<string, unknown>;
+	if (a.t === 'b') return typeof a.i === 'number' && Number.isInteger(a.i);
+	if (a.t === 'a') return (a.a === 0 || a.a === 1) && (a.v === -1 || a.v === 1);
+	return false;
+}
+
+function currentConfig(): Config {
+	return normalizeConfig(lastConfig);
+}
+
+function persist(config: Config): void {
+	post(config);
+	void writeConfig(config);
+}
+
 window.addEventListener('message', (e) => {
 	if (e.source !== window) return;
-	const d = e.data as { __padm0nk?: string } | null;
-	if (d && d.__padm0nk === 'hello') post(lastConfig);
+	const d = e.data as {
+		__padm0nk?: string;
+		enabled?: unknown;
+		action?: unknown;
+		inputId?: unknown;
+	} | null;
+	if (!d) return;
+	if (d.__padm0nk === 'hello') {
+		post(lastConfig);
+		return;
+	}
+	if (d.__padm0nk === 'set-enabled' && typeof d.enabled === 'boolean') {
+		persist({ ...currentConfig(), enabled: d.enabled });
+		return;
+	}
+	if (d.__padm0nk === 'bind' && typeof d.inputId === 'string' && isAction(d.action)) {
+		const config = currentConfig();
+		persist({ ...config, bindings: { ...config.bindings, [d.inputId]: { ...d.action } } });
+		return;
+	}
+	if (d.__padm0nk === 'unbind' && typeof d.inputId === 'string') {
+		const config = currentConfig();
+		const bindings = { ...config.bindings };
+		delete bindings[d.inputId];
+		persist({ ...config, bindings });
+	}
 });
 
 // Initial load. readConfig handles local-first → sync-fallback (+ migrate) and

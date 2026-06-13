@@ -189,8 +189,19 @@
 	});
 
 	// ---- settings ----
+	function sliderFor(key: (typeof SLIDERS)[number]['key']): (typeof SLIDERS)[number] {
+		return SLIDERS.find((s) => s.key === key)!;
+	}
+
+	function clampNumber(key: (typeof SLIDERS)[number]['key'], raw: string): number {
+		const s = sliderFor(key);
+		const parsed = Number.parseFloat(raw);
+		const value = Number.isFinite(parsed) ? parsed : config[key];
+		return Math.min(s.max, Math.max(s.min, value));
+	}
+
 	function setNumber(key: (typeof SLIDERS)[number]['key'], raw: string): void {
-		config[key] = parseFloat(raw);
+		config[key] = clampNumber(key, raw);
 		save();
 	}
 	function setBool(key: 'invertY' | 'lockPointerOnClick', value: boolean): void {
@@ -293,7 +304,7 @@
 							<span
 								class="bg-pad-chip border-pad-border inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm"
 							>
-								<b class="text-pad-accent font-semibold">{prettyInput(id)}</b>
+								<b class="text-pad-key font-semibold">{prettyInput(id)}</b>
 								<button
 									type="button"
 									class="chip-x text-pad-danger cursor-pointer font-bold"
@@ -333,20 +344,26 @@
 	</h2>
 	<div class="flex flex-col gap-1">
 		{#each SLIDERS as s (s.key)}
-			<label class="my-1 flex max-w-md items-center justify-between gap-3">
-				<span>{s.label}</span>
+			<label class="my-1 flex max-w-xl items-center gap-3">
+				<span class="min-w-56 flex-1">{s.label}</span>
 				<input
 					type="range"
-					class="accent-pad-accent flex-1"
+					class="pad-range w-full"
 					min={s.min}
 					max={s.max}
 					step={s.step}
 					value={config[s.key]}
 					oninput={(e) => setNumber(s.key, e.currentTarget.value)}
 				/>
-				<span class="text-pad-accent w-12 text-right tabular-nums"
-					>{config[s.key].toFixed(s.dp)}</span
-				>
+				<input
+					type="number"
+					class="pad-number w-20 rounded-sm px-2 py-1 text-right font-mono text-sm"
+					min={s.min}
+					max={s.max}
+					step={s.step}
+					value={config[s.key].toFixed(s.dp)}
+					onchange={(e) => setNumber(s.key, e.currentTarget.value)}
+				/>
 			</label>
 		{/each}
 		<label class="my-1 flex max-w-md items-center justify-between gap-3">

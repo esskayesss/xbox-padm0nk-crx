@@ -1,33 +1,56 @@
 <script lang="ts">
-	// Compact popup: quick toggles + aim sliders, mirroring the legacy popup.
-	// Persistence goes through src/shared/storage.ts (local-first + debounced
-	// sync backup); live external edits arrive via onConfigChanged.
-	//
-	// Visual language matches the HUD/overlay: branded orb header with ON/OFF
-	// echo, themed bg-pad-surface cards, themed scale only (no arbitrary
-	// brackets / inline gradients). Values stay registry/config-driven.
+	// Popup command deck: quick power state + aim tuning. Persists through
+	// shared/storage.ts; external edits live-refresh through onConfigChanged.
 	import { onMount } from 'svelte';
 	import { DEFAULT_CONFIG } from '../core/config';
 	import { comboLabel } from '../core/combos';
 	import { readConfig, writeConfig, onConfigChanged } from '../shared/storage';
 	import type { Config } from '../core/types';
 
-	// Slider ranges match the legacy options page byte-for-byte.
 	const SLIDERS = [
-		{ key: 'sensitivity', label: 'Mouse sensitivity', min: 0.002, max: 0.05, step: 0.001, dp: 3 },
-		{ key: 'smoothing', label: 'Smoothing', min: 0, max: 0.9, step: 0.05, dp: 2 },
-		{ key: 'aimMin', label: 'Aim min', min: 0, max: 0.35, step: 0.01, dp: 2 },
-		{ key: 'aimCurve', label: 'Aim curve', min: 0.35, max: 1.5, step: 0.05, dp: 2 },
+		{
+			key: 'sensitivity',
+			label: 'Sensitivity',
+			hint: 'Mouse → stick gain',
+			min: 0.002,
+			max: 0.05,
+			step: 0.001,
+			dp: 3,
+		},
+		{
+			key: 'smoothing',
+			label: 'Smoothing',
+			hint: 'Aim inertia',
+			min: 0,
+			max: 0.9,
+			step: 0.05,
+			dp: 2,
+		},
+		{
+			key: 'aimMin',
+			label: 'Aim min',
+			hint: 'Deadzone lift',
+			min: 0,
+			max: 0.35,
+			step: 0.01,
+			dp: 2,
+		},
+		{
+			key: 'aimCurve',
+			label: 'Aim curve',
+			hint: 'Fine control shape',
+			min: 0.35,
+			max: 1.5,
+			step: 0.05,
+			dp: 2,
+		},
 	] as const;
 
-	// Behaviour toggles rendered config-driven (same surface as legacy popup).
 	const TOGGLES = [
-		{ key: 'invertY', label: 'Invert Y' },
-		{ key: 'lockPointerOnClick', label: 'Lock pointer on click' },
+		{ key: 'invertY', label: 'Invert Y', hint: 'Flip vertical aim' },
+		{ key: 'lockPointerOnClick', label: 'Aim lock', hint: 'Click game to capture mouse' },
 	] as const;
 
-	// Brand icon resolved from the extension (popup has chrome.* access); falls
-	// back to a "p" glyph when unavailable, mirroring the HUD orb fallback.
 	const iconUrl = (() => {
 		try {
 			return chrome.runtime?.getURL?.('icons/padm0nk.png') ?? '';
@@ -37,14 +60,12 @@
 	})();
 
 	let config = $state<Config>(structuredClone(DEFAULT_CONFIG));
-
-	// Footer hint reflects the *current* configured combos, not hardcoded F8/F9.
 	const toggleLabel = $derived(comboLabel(config.toggleCombo));
 	const helpLabel = $derived(comboLabel(config.helpCombo));
+	const stateLabel = $derived(config.enabled ? 'armed' : 'offline');
 
 	onMount(() => {
 		void readConfig().then((c) => (config = c));
-		// Live-refresh when another surface (options page / content) edits config.
 		return onConfigChanged((c) => (config = c));
 	});
 
@@ -52,8 +73,19 @@
 		void writeConfig($state.snapshot(config));
 	}
 
+	function sliderFor(key: (typeof SLIDERS)[number]['key']): (typeof SLIDERS)[number] {
+		return SLIDERS.find((s) => s.key === key)!;
+	}
+
+	function clampNumber(key: (typeof SLIDERS)[number]['key'], raw: string): number {
+		const s = sliderFor(key);
+		const parsed = Number.parseFloat(raw);
+		const value = Number.isFinite(parsed) ? parsed : config[key];
+		return Math.min(s.max, Math.max(s.min, value));
+	}
+
 	function setNumber(key: (typeof SLIDERS)[number]['key'], raw: string): void {
-		config[key] = parseFloat(raw);
+		config[key] = clampNumber(key, raw);
 		save();
 	}
 
@@ -62,17 +94,13 @@
 		save();
 	}
 
-	// Reset ONLY slider/toggle fields; preserve bindings + toggle/help combos.
 	function resetSliders(): void {
 		config = {
 			...config,
-			enabled: DEFAULT_CONFIG.enabled,
 			sensitivity: DEFAULT_CONFIG.sensitivity,
 			smoothing: DEFAULT_CONFIG.smoothing,
 			aimMin: DEFAULT_CONFIG.aimMin,
 			aimCurve: DEFAULT_CONFIG.aimCurve,
-			invertY: DEFAULT_CONFIG.invertY,
-			lockPointerOnClick: DEFAULT_CONFIG.lockPointerOnClick,
 		};
 		save();
 	}
@@ -82,105 +110,135 @@
 	}
 </script>
 
-<main class="bg-pad-bg-2 text-pad-text w-70 p-3 font-sans text-sm leading-relaxed">
-	<!-- Branded header: orb + title + ON/OFF state echoing the HUD. -->
-	<header class="pad-surface mb-3 flex items-center gap-2.5 rounded-md border p-2">
-		<span class="pad-orb grid size-9 shrink-0 place-items-center overflow-hidden rounded-sm p-1">
-			{#if iconUrl}
-				<img
-					src={iconUrl}
-					alt="padm0nk"
-					class="pad-icon-glow h-full w-full object-contain"
-					class:grayscale={!config.enabled}
-				/>
-			{:else}
-				<span class="text-pad-accent text-sm font-bold" aria-hidden="true">p</span>
-			{/if}
-		</span>
-		<div class="min-w-0 flex-1">
-			<div class="text-pad-text truncate text-sm font-semibold">padm0nk</div>
-			<div
-				class="text-2xs tracking-widest uppercase"
-				class:text-pad-accent={config.enabled}
-				class:text-pad-muted={!config.enabled}
+<main class="bg-pad-bg text-pad-text w-70 overflow-hidden font-sans text-sm leading-tight">
+	<section class="pad-panel-bg border-pad-accent/40 border-b p-3">
+		<header class="flex items-start gap-3">
+			<span
+				class="pad-orb grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm p-1.5"
 			>
-				{config.enabled ? 'ON' : 'OFF'}
-			</div>
-		</div>
-	</header>
-
-	<!-- Prominent enable toggle. -->
-	<label
-		class="pad-surface mb-3 flex cursor-pointer items-center justify-between gap-2.5 rounded-sm border px-3 py-2"
-	>
-		<span class="font-semibold">Enabled</span>
-		<input
-			type="checkbox"
-			class="accent-pad-accent size-5"
-			checked={config.enabled}
-			onchange={(e) => setBool('enabled', e.currentTarget.checked)}
-		/>
-	</label>
-
-	<!-- Aim / sensitivity sliders, grouped on a themed surface card. -->
-	<section class="pad-surface mb-3 grid gap-2 rounded-md border p-3">
-		{#each SLIDERS as s (s.key)}
-			<label class="grid gap-1">
+				{#if iconUrl}
+					<img
+						src={iconUrl}
+						alt="padm0nk"
+						class="pad-icon-glow h-full w-full object-contain"
+						class:grayscale={!config.enabled}
+						class:opacity-60={!config.enabled}
+					/>
+				{:else}
+					<span class="text-pad-accent text-lg font-bold" aria-hidden="true">p</span>
+				{/if}
+			</span>
+			<div class="min-w-0 flex-1">
 				<div class="flex items-center justify-between gap-2">
-					<span class="text-pad-muted text-xs">{s.label}</span>
-					<span class="text-pad-accent w-10 text-right text-xs tabular-nums">
-						{config[s.key].toFixed(s.dp)}
+					<div class="text-xl font-semibold tracking-wide uppercase">padm0nk</div>
+					<span
+						class="rounded-sm border px-2 py-0.5 text-2xs tracking-widest uppercase"
+						class:border-pad-accent={config.enabled}
+						class:border-pad-border={!config.enabled}
+						class:text-pad-accent={config.enabled}
+						class:text-pad-muted={!config.enabled}
+					>
+						{stateLabel}
 					</span>
 				</div>
-				<input
-					type="range"
-					class="accent-pad-accent w-full"
-					min={s.min}
-					max={s.max}
-					step={s.step}
-					value={config[s.key]}
-					oninput={(e) => setNumber(s.key, e.currentTarget.value)}
-				/>
-			</label>
-		{/each}
+				<p class="text-pad-muted mt-1 text-xs leading-tight">
+					Keyboard + mouse translated into a virtual Xbox pad.
+				</p>
+			</div>
+		</header>
+
+		<label
+			class="bg-pad-chip/80 border-pad-hairline mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-sm border px-3 py-2"
+		>
+			<span class="font-semibold">Virtual controller</span>
+			<input
+				type="checkbox"
+				class="accent-pad-accent size-5"
+				checked={config.enabled}
+				onchange={(e) => setBool('enabled', e.currentTarget.checked)}
+			/>
+		</label>
 	</section>
 
-	<!-- Behaviour toggles, config-driven. -->
-	<section class="pad-surface mb-3 grid gap-1 rounded-md border p-3">
-		{#each TOGGLES as t (t.key)}
-			<label class="flex cursor-pointer items-center justify-between gap-2.5">
-				<span>{t.label}</span>
-				<input
-					type="checkbox"
-					class="accent-pad-accent"
-					checked={config[t.key]}
-					onchange={(e) => setBool(t.key, e.currentTarget.checked)}
-				/>
-			</label>
-		{/each}
+	<section class="grid gap-2 p-3">
+		<div class="grid grid-cols-2 gap-2">
+			{#each TOGGLES as t (t.key)}
+				<label class="pad-surface cursor-pointer rounded-sm border p-2">
+					<div class="mb-2 flex items-center justify-between gap-2">
+						<span class="text-pad-text text-xs font-semibold">{t.label}</span>
+						<input
+							type="checkbox"
+							class="accent-pad-accent"
+							checked={config[t.key]}
+							onchange={(e) => setBool(t.key, e.currentTarget.checked)}
+						/>
+					</div>
+					<span class="text-pad-muted text-2xs uppercase tracking-wide">{t.hint}</span>
+				</label>
+			{/each}
+		</div>
+
+		<section class="pad-surface grid gap-3 rounded-md border p-3">
+			<div class="flex items-center justify-between">
+				<h2 class="text-pad-accent text-xs font-semibold tracking-widest uppercase">Aim tuning</h2>
+				<button
+					type="button"
+					class="text-pad-muted hover:text-pad-accent cursor-pointer text-2xs uppercase tracking-widest"
+					onclick={resetSliders}
+				>
+					Reset
+				</button>
+			</div>
+			{#each SLIDERS as s (s.key)}
+				<label class="grid gap-1">
+					<div class="flex items-baseline justify-between gap-2">
+						<span>
+							<span class="block text-xs font-semibold">{s.label}</span>
+							<span class="text-pad-muted text-2xs uppercase tracking-wide">{s.hint}</span>
+						</span>
+						<input
+							type="number"
+							class="pad-number w-16 rounded-sm px-1.5 py-0.5 text-right font-mono text-xs"
+							min={s.min}
+							max={s.max}
+							step={s.step}
+							value={config[s.key].toFixed(s.dp)}
+							onchange={(e) => setNumber(s.key, e.currentTarget.value)}
+						/>
+					</div>
+					<input
+						type="range"
+						class="pad-range w-full"
+						min={s.min}
+						max={s.max}
+						step={s.step}
+						value={config[s.key]}
+						oninput={(e) => setNumber(s.key, e.currentTarget.value)}
+					/>
+				</label>
+			{/each}
+		</section>
+
+		<div class="grid grid-cols-2 gap-2">
+			<button
+				type="button"
+				class="bg-pad-chip text-pad-text border-pad-border hover:border-pad-accent cursor-pointer rounded-sm border px-2 py-2 text-xs font-semibold"
+				onclick={openOptions}
+			>
+				Advanced
+			</button>
+			<button
+				type="button"
+				class="bg-pad-chip text-pad-text border-pad-border hover:border-pad-accent cursor-pointer rounded-sm border px-2 py-2 text-xs font-semibold"
+				onclick={() => chrome.tabs?.create?.({ url: 'https://hardwaretester.com/gamepad' })}
+			>
+				Test pad
+			</button>
+		</div>
+
+		<p class="text-pad-muted text-xs leading-snug">
+			<b class="text-pad-accent">{toggleLabel}</b> toggles in-game.
+			<b class="text-pad-accent">{helpLabel}</b> edits binds. Click game to lock aim; Esc releases.
+		</p>
 	</section>
-
-	<!-- Footer: open full options + reset; combo hints below. -->
-	<div class="flex gap-2">
-		<button
-			type="button"
-			class="bg-pad-chip text-pad-text border-pad-border flex-1 cursor-pointer rounded-sm border px-2 py-1.5 text-xs hover:brightness-125"
-			onclick={openOptions}
-		>
-			⚙️ Advanced…
-		</button>
-		<button
-			type="button"
-			class="bg-pad-chip text-pad-text border-pad-border flex-1 cursor-pointer rounded-sm border px-2 py-1.5 text-xs hover:brightness-125"
-			onclick={resetSliders}
-		>
-			Reset sliders
-		</button>
-	</div>
-
-	<small class="text-pad-muted mt-2.5 block text-xs">
-		Toggle in-game with <b class="text-pad-accent">{toggleLabel}</b>. Open keybinds with
-		<b class="text-pad-accent">{helpLabel}</b>. Click the game to lock the mouse for aim;
-		<b class="text-pad-accent">Esc</b> releases it.
-	</small>
 </main>

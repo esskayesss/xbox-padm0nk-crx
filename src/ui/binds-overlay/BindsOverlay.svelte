@@ -29,6 +29,8 @@
 		toggleCombo: Combo;
 		helpCombo: Combo;
 		onClose: () => void;
+		onBind: (action: Action, inputId: string) => void;
+		onUnbind: (inputId: string) => void;
 	}
 	let {
 		open,
@@ -40,6 +42,8 @@
 		toggleCombo,
 		helpCombo,
 		onClose,
+		onBind,
+		onUnbind,
 	}: Props = $props();
 
 	/** A rail/system row: either a bound action or a static INFO value. */
@@ -48,7 +52,7 @@
 	const leftRows: Row[] = [
 		{ icon: 'left-trigger.svg', label: 'LT', action: { t: 'b', i: 6 } },
 		{ icon: 'left-bumper.svg', label: 'LB', action: { t: 'b', i: 4 } },
-		{ icon: 'left-stick.svg', label: 'Left stick', action: { t: 'a', a: 1, v: -1 } },
+		{ icon: 'left-stick.svg', label: 'Left stick', value: 'WASD' },
 		{ icon: 'left-stick-press.svg', label: 'L3', action: { t: 'b', i: 10 } },
 		{ icon: 'dpad-up.svg', label: 'D-pad up', action: { t: 'b', i: 12 }, dpad: true },
 		{ icon: 'dpad-down.svg', label: 'D-pad down', action: { t: 'b', i: 13 }, dpad: true },
@@ -82,20 +86,123 @@
 		return false;
 	}
 
-	/** Bound input ids for an action, prettified; "UNMAPPED" when none. */
-	function boundInputs(action: Action): string {
-		const ids = Object.keys(bindings).filter((id) => actionEq(bindings[id]!, action));
+	type CaptureState = { row: string; action: Action } | null;
+	let capturing = $state<CaptureState>(null);
+
+	function inputIdsFor(action: Action): string[] {
+		return Object.keys(bindings).filter((id) => actionEq(bindings[id]!, action));
+	}
+
+	function rowValue(row: Row): string {
+		if (row.value) return row.value;
+		if (!row.action) return 'UNMAPPED';
+		const ids = inputIdsFor(row.action);
 		return ids.length ? ids.map(prettyInput).join(' / ') : 'UNMAPPED';
 	}
 
-	/** Resolve the value shown on a row: static info or live binding. */
-	function rowValue(row: Row): string {
-		return row.value ?? (row.action ? boundInputs(row.action) : 'UNMAPPED');
+	function startCapture(row: Row): void {
+		if (!row.action) return;
+		capturing = { row: row.label, action: row.action };
+	}
+
+	function cancelCapture(): void {
+		capturing = null;
+	}
+
+	function close(): void {
+		capturing = null;
+		onClose();
+	}
+
+	$effect(() => {
+		if (!open) capturing = null;
+	});
+
+	function commitInput(inputId: string): void {
+		if (!capturing) return;
+		onBind(capturing.action, inputId);
+		capturing = null;
+	}
+
+	function captureKey(e: KeyboardEvent): void {
+		if (!open || !capturing) return;
+		e.preventDefault();
+		e.stopPropagation();
+		e.stopImmediatePropagation();
+		if (e.key === 'Escape') {
+			cancelCapture();
+			return;
+		}
+		commitInput(e.code);
+	}
+
+	function captureMouse(e: MouseEvent): void {
+		if (!open || !capturing) return;
+		if ((e.target as Element | null)?.closest('button')) return;
+		e.preventDefault();
+		e.stopPropagation();
+		e.stopImmediatePropagation();
+		commitInput('Mouse' + e.button);
+	}
+
+	function captureWheel(e: WheelEvent): void {
+		if (!open || !capturing) return;
+		e.preventDefault();
+		e.stopPropagation();
+		e.stopImmediatePropagation();
+		commitInput(e.deltaY < 0 ? 'WheelUp' : 'WheelDown');
 	}
 
 	// Second line of defense (see shadow.ts CLICK-SAFETY): swallow on the panel.
 	const stop = (e: Event) => e.stopPropagation();
 </script>
+
+{#snippet bindEditor(row: Row, compact = false)}
+	{#if row.action}
+		<div class="mt-1 flex flex-wrap items-center gap-1">
+			{#each inputIdsFor(row.action) as id (id)}
+				<span
+					class="bg-pad-chip border-pad-hairline inline-flex max-w-full items-center gap-1 rounded-sm border px-1.5 py-0.5"
+				>
+					<span class="text-pad-key truncate font-semibold {compact ? 'text-2xs' : 'text-xs'}"
+						>{prettyInput(id)}</span
+					>
+					<button
+						type="button"
+						class="text-pad-muted hover:text-pad-danger cursor-pointer leading-none"
+						onclick={() => onUnbind(id)}
+						aria-label={`Unbind ${prettyInput(id)} from ${row.label}`}
+					>
+						×
+					</button>
+				</span>
+			{/each}
+			<button
+				type="button"
+				class="border-pad-accent/25 bg-pad-chip/80 text-pad-accent hover:border-pad-accent cursor-pointer rounded-sm border px-1.5 py-0.5 {compact
+					? 'text-2xs'
+					: 'text-xs'}"
+				onclick={() => startCapture(row)}
+			>
+				{capturing?.row === row.label
+					? 'press input…'
+					: inputIdsFor(row.action).length
+						? '+ add'
+						: '+ bind'}
+			</button>
+		</div>
+	{:else}
+		<span class="text-pad-text block truncate {compact ? 'text-xs' : 'text-sm'} leading-tight">
+			{rowValue(row)}
+		</span>
+	{/if}
+{/snippet}
+
+<svelte:window
+	onkeydowncapture={captureKey}
+	onmousedowncapture={captureMouse}
+	onwheelcapture={captureWheel}
+/>
 
 {#if open}
 	<!-- Backdrop: pointer-events on (host is click-through); click closes. -->
@@ -110,9 +217,11 @@
 			e.stopPropagation();
 		}}
 		onclick={(e) => {
-			if (e.target === e.currentTarget) onClose();
+			if (e.target === e.currentTarget) close();
 		}}
-		onkeydown={(e) => e.key === 'Escape' && onClose()}
+		onkeydown={(e) => {
+			if (e.key === 'Escape') close();
+		}}
 		role="presentation"
 	>
 		<!-- Panel -->
@@ -126,7 +235,7 @@
 			aria-label="padm0nk binds"
 			tabindex="-1"
 		>
-			<!-- Header: brand orb + title/subtitle | legends + close -->
+			<!-- Header: brand orb + title/subtitle | shortcut legends -->
 			<div
 				class="mb-4 flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start"
 			>
@@ -157,26 +266,15 @@
 					</div>
 				</div>
 
-				<div class="flex items-center gap-2.5">
-					<!-- Toggle / Close legends -->
-					<div class="grid min-w-64 grid-cols-2 gap-2.5 max-[900px]:min-w-0 max-[900px]:flex-1">
-						<div class="pad-surface rounded-sm border px-3 py-2">
-							<span class="text-pad-muted block text-xs uppercase">Toggle</span>
-							<span class="text-pad-text block text-sm">{comboLabel(toggleCombo)}</span>
-						</div>
-						<div class="pad-surface rounded-sm border px-3 py-2">
-							<span class="text-pad-muted block text-xs uppercase">Close</span>
-							<span class="text-pad-text block text-sm">{comboLabel(helpCombo)} / Esc</span>
-						</div>
+				<div class="grid min-w-64 grid-cols-2 gap-2.5 max-[900px]:min-w-0 max-[900px]:flex-1">
+					<div class="pad-surface rounded-sm border px-3 py-2">
+						<span class="text-pad-muted block text-xs uppercase">Toggle</span>
+						<span class="text-pad-text block text-sm">{comboLabel(toggleCombo)}</span>
 					</div>
-					<button
-						type="button"
-						class="text-pad-text hover:border-pad-accent border-pad-accent/25 bg-pad-chip/80 grid size-9 shrink-0 place-items-center rounded-sm border text-lg leading-none"
-						onclick={onClose}
-						aria-label="Close binds overlay"
-					>
-						×
-					</button>
+					<div class="pad-surface rounded-sm border px-3 py-2">
+						<span class="text-pad-muted block text-xs uppercase">Close</span>
+						<span class="text-pad-text block text-sm">{comboLabel(helpCombo)} / Esc</span>
+					</div>
 				</div>
 			</div>
 
@@ -206,9 +304,7 @@
 								<span class="text-pad-muted block text-2xs tracking-widest uppercase">
 									{row.label}
 								</span>
-								<span class="text-pad-text block truncate text-sm leading-tight">
-									{rowValue(row)}
-								</span>
+								{@render bindEditor(row)}
 							</div>
 						</div>
 					{/each}
@@ -219,7 +315,7 @@
 					class="pad-card-bg border-pad-hairline flex min-w-0 flex-col rounded-md border p-3 max-[900px]:order-first"
 				>
 					<div
-						class="pad-padmap-bg relative aspect-controller w-full overflow-hidden rounded-md"
+						class="pad-padmap-bg relative aspect-controller w-full overflow-visible rounded-md"
 						aria-label="Xbox controller"
 					>
 						{#if controllerUrl}
@@ -254,7 +350,7 @@
 										<span class="text-pad-muted block text-2xs tracking-widest uppercase">
 											{chip.label}
 										</span>
-										<span class="text-pad-text block truncate text-xs">{rowValue(chip)}</span>
+										{@render bindEditor(chip, true)}
 									</div>
 								</div>
 							{/each}
@@ -296,9 +392,7 @@
 								<span class="text-pad-muted block text-2xs tracking-widest uppercase">
 									{row.label}
 								</span>
-								<span class="text-pad-text block truncate text-sm leading-tight">
-									{rowValue(row)}
-								</span>
+								{@render bindEditor(row)}
 							</div>
 						</div>
 					{/each}

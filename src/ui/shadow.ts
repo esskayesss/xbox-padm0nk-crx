@@ -44,7 +44,7 @@ import { mount, unmount, type Component } from 'svelte';
 import { createPropsBox } from './reactive-props.svelte';
 import Hud from './hud/Hud.svelte';
 import BindsOverlay from './binds-overlay/BindsOverlay.svelte';
-import type { Bindings, Combo } from '../core/types';
+import type { Action, Bindings, Combo } from '../core/types';
 // Compiled Tailwind + theme tokens as a string (CSP-safe shadow injection).
 import compiledCss from './styles/theme.css?inline';
 
@@ -93,6 +93,10 @@ export type OverlayProps = {
 	helpCombo: Combo;
 	/** Invoked when the user closes via the close button or backdrop click. */
 	onClose: () => void;
+	/** Bind a captured input id to an action from the overlay. */
+	onBind: (action: Action, inputId: string) => void;
+	/** Remove a single input binding from the overlay. */
+	onUnbind: (inputId: string) => void;
 };
 
 export type HudMountOptions = HudProps & { fontUrl?: string };

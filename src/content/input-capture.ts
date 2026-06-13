@@ -80,6 +80,7 @@ export function installInputCapture(ctrl: CaptureController): () => void {
 
 	// --- Keyboard --------------------------------------------------------------
 	function onKey(e: KeyboardEvent, down: boolean): void {
+		if (ctrl.isUiEvent(e)) return;
 		const config = ctrl.getConfig();
 
 		// Combos + Escape are checked BEFORE the enabled gate, so the toggle combo
@@ -115,6 +116,7 @@ export function installInputCapture(ctrl: CaptureController): () => void {
 	}
 
 	function onKeyPress(e: KeyboardEvent): void {
+		if (ctrl.isUiEvent(e)) return;
 		const config = ctrl.getConfig();
 		if (!config.enabled) return;
 		// Some browsers/pages scroll on keypress rather than keydown.
@@ -209,6 +211,7 @@ export function installInputCapture(ctrl: CaptureController): () => void {
 
 	// --- Wheel (pulse a bound wheel direction) ---------------------------------
 	const wheelHandler = (e: Event): void => {
+		if (ctrl.isUiEvent(e)) return;
 		const config = ctrl.getConfig();
 		if (!config.enabled) return;
 		const we = e as WheelEvent;

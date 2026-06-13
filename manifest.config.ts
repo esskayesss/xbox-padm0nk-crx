@@ -49,6 +49,10 @@ export default defineManifest({
 			'128': 'icons/icon-128.png',
 		},
 	},
+	background: {
+		service_worker: 'src/background/service-worker.ts',
+		type: 'module',
+	},
 	web_accessible_resources: [
 		{
 			resources: [
@@ -56,6 +60,7 @@ export default defineManifest({
 				'assets/bind-icons/*.svg',
 				'assets/fonts/*.woff',
 				'icons/padm0nk.png',
+				'icons/icon-disabled-*.png',
 			],
 			matches: WAR_MATCHES,
 		},
